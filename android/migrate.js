@@ -1,0 +1,2 @@
+// перенос прогресса из APK 0.01 (ключи mb_best/mb_cur)
+try{const ob=localStorage.getItem('mb_best');if(ob!==null){const b=Math.min(10000,Math.max(0,Math.floor(+ob)||0)),c=Math.max(0,Math.min(Math.floor(+localStorage.getItem('mb_cur'))||0,b));if(b>prog.best){prog.best=b;prog.cur=c;prog.coins=Math.max(prog.coins|0,10*b)}localStorage.removeItem('mb_best');localStorage.removeItem('mb_cur');saveProg()}}catch(_){}

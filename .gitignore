@@ -1,0 +1,11 @@
+# ключ подписи и пароли — никогда в git
+*.jks
+*.keystore
+*.p12
+*.pem
+signing.env
+# результаты сборки
+build/
+*.apk
+*.aab
+*.idsig
