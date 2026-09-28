@@ -65,6 +65,7 @@
   .tg input{width:20px;height:20px;accent-color:#141414}
   .card .danger{background:#fbe4e2;color:#b3261e;margin:14px 0 8px;width:100%}
   .card .ghost{background:#eee;color:var(--ink)}
+  .card .ver{position:absolute;top:12px;right:16px;margin:0;font-size:11px;opacity:.45} /* в углу — карточка не становится выше */
   .row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
   .legend{position:absolute;left:calc(16px + env(safe-area-inset-left,0px));bottom:calc(10px + env(safe-area-inset-bottom,0px));font-size:12px;background:var(--panel);border-radius:999px;padding:6px 12px;display:flex;gap:8px;align-items:center;pointer-events:none}
   #test{font-weight:700;background:var(--flag)}
@@ -142,23 +143,24 @@
     <div class="row"><button id="mmSkins" type="button">Скины</button><button id="mmSet" type="button">Настройки</button></div>
   </div></div>
   <div class="overlay screen" id="shop" hidden><div class="card wide"><h2>Скины</h2><div class="coins"><i class="coin"></i><span id="shopCoins">0</span></div>
-    <p class="hint">Монеты: 10 за первое прохождение уровня, 5 за каждую новую звезду, 2 за флажок в бесконечном пути</p>
+    <p class="hint">Монеты: 10 за первое прохождение уровня, 5 за каждую новую звезду и за бонусную монетку на уровне, 2 за флажок в бесконечном пути</p>
     <div class="shop" id="shopList"></div><button id="shopBack" class="ghost" type="button">← Назад</button></div></div>
-  <div class="overlay screen" id="set" hidden><div class="card"><h2>Настройки</h2>
+  <div class="overlay screen" id="set" hidden><div class="card" style="position:relative"><h2>Настройки</h2>
     <label class="tg"><input type="checkbox" id="stAnim"><span>Анимация фона <small>облака, снег, звёзды</small></span></label>
     <label class="tg"><input type="checkbox" id="stLegend"><span>Подсказка про нагрузку</span></label>
     <label class="tg"><input type="checkbox" id="stZone"><span>Граница зоны досягаемости</span></label>
     <button id="stReset" type="button" class="danger">Сбросить прогресс</button>
-    <button id="setBack" class="ghost" type="button">← Назад</button></div></div>
+    <button id="setBack" class="ghost" type="button">← Назад</button><p class="ver">версия 0.19</p></div></div>
   <div class="overlay" id="ov" hidden><div class="card"><h2 id="ovT"></h2><p id="ovP"></p><div class="row"><button id="ovB" type="button"></button><button id="ovB2" class="ghost" type="button" hidden></button></div></div></div>
 </div>
 
 <script>
 const W=1000,H=600,R=11,MAXL=150,MINL=32,G=0.3,ITER=20;
 const BREAK=0.04,BREAK_T=20; // палка лопается, если растянута/сжата >4% дольше ~0.33 с
-// уровень = площадки слева направо: [x0, x1, y]; первая уходит влево, последняя — цель.
-// промежуточные площадки — флажки-сохранения.
-const FAR=1600;
+// уровень = площадки слева направо: [x0, x1, y] или [x0, x1, y, {…}]; первая уходит влево, последняя — цель.
+// промежуточные площадки — флажки-сохранения. {h} — летающий остров толщиной h; {spk:[a,b]} — шипы на верху от a до b;
+// {pit:1} — дно ямы, всё в шипах (не флажок). o — скалы сверху: [x0, x1, низ скалы]. coin — бонусная монетка [x, y].
+const FAR=1600,SPK=12; // SPK — высота шипов: шарик, опустившийся в них, лопается
 const LEVELS=[
   {name:'Ступенька',     p:[[-600,620,540],[620,FAR,420]], start:200, hint:true},
   {name:'Утёс',          p:[[-600,650,540],[650,FAR,300]], start:220},
@@ -174,30 +176,57 @@ const LEVELS=[
   {name:'Ущелье',        p:[[-600,350,500],[590,740,500],[740,900,380],[1110,FAR,420]], start:160},
 ];
 const NAMES=['Перевал','Каньон','Острова','Ступени','Карьер','Гряда','Ущелье','Плато','Обрыв','Пороги'];
+const FNAMES={isl:['Остров','Архипелаг','Облака'],pit:['Колючки','Кактусы','Яма'],spk:['Шипы','Ёжик','Колючий берег'],rock:['Навес','Грот','Козырёк']};
+// новинки впервые — по одной на уровнях 13–19 (номер сгенерированного уровня -> что показать); монетка — с 14-го
+const INTRO={0:'isl',2:'pit',4:'spk',6:'rock'},FEATS=['isl','pit','spk','rock'];
+// уровни, где бот-строитель не прошёл первый вариант: номер -> «соль» генератора (tools/solve.js --reroll)
+const REROLL={};
 function genLevel(i){
-  let a=Math.imul(i,0x9E3779B1)>>>0; // mulberry32
+  let a=(Math.imul(i,0x9E3779B1)^Math.imul(REROLL[i]|0,0x85EBCA6B))>>>0; // mulberry32
   const rnd=()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296};
+  const pick=A=>A[Math.floor(rnd()*A.length)];
   const n=i-LEVELS.length,k=Math.min(1,n/30); // сложность растёт и упирается в потолок
-  const cnt=2+(rnd()<.45+.3*k?1:0)+(rnd()<.2+.35*k?1:0); // 2..4 площадки
+  const cnt=2+(rnd()<.45+.3*k?1:0)+(rnd()<.2+.35*k?1:0); // 2..4 площадки (+ острова)
   const clampY=y=>Math.round(Math.max(210,Math.min(565,y)));
-  let y=clampY(490+rnd()*70),x=Math.round(320+rnd()*120);
-  const p=[[-600,x,y]];let prev='';
+  // новинки: на обучающем уровне — ровно одна, до 20-го — ни одной случайной, дальше 0..2 на участки
+  const intro=INTRO[n],feats=intro?[intro]:n<7?[]:FEATS.filter(()=>rnd()<.3).slice(0,cnt>2?2:1);
+  const slot={};{const S=[];for(let s=1;s<cnt;s++)S.push(s);for(const f of feats){if(!S.length)break;slot[S.splice(Math.floor(rnd()*S.length),1)[0]]=f}}
+  let y=clampY(intro==='pit'?400+rnd()*60:490+rnd()*70),x=Math.round(320+rnd()*120); // яме нужна глубина: обучающий уровень начинается выше
+  const p=[[-600,x,y]],o=[],gaps=[];let prev='';
   for(let s=1;s<cnt;s++){
-    const last=s===cnt-1;
+    const last=s===cnt-1;let f=slot[s];
+    if(f==='pit'&&y>520)f='spk'; // низко — дну ямы не хватит места до края экрана: вместо ямы шипы на краю
+    if(f==='isl'){ // летающий остров посреди пропасти: на него можно опереться, под ним пусто; дальше — снова пропасть
+      const ix=Math.round(x+100+rnd()*(40+40*k)),iw=Math.round(150-40*k+rnd()*40),iy=clampY(y+(rnd()-.5)*90);
+      gaps.push([x,ix,Math.min(y,iy)]);p.push([ix,ix+iw,iy,{h:Math.round(50+rnd()*20)}]);x=ix+iw;y=iy;prev='isl';
+    }
     const r=rnd();
     let kind=r<.42?'gap':r<.64?'up':r<.8?'down':'pillar';
     if(kind===prev&&kind!=='gap'&&rnd()<.6)kind='gap'; // меньше повторов подряд
     if(last&&(kind==='pillar'||kind==='down'))kind=rnd()<.6?'gap':'up'; // к цели не «спрыгивают»
+    if(f==='isl'||f==='pit'||f==='rock'||(f==='spk'&&kind==='pillar'))kind='gap'; // после острова, у ямы и под скалой — пропасть
     let gap=0,ny=y,w=last?FAR:Math.round(170+rnd()*170);
     if(kind==='gap'){gap=100+rnd()*(70+50*k);ny=y+(rnd()-.5)*(60+160*k)}
     else if(kind==='up'){gap=rnd()<.35?60+rnd()*60:0;ny=y-(80+rnd()*(90+90*k))}
     else if(kind==='down'){gap=rnd()<.5?0:80+rnd()*90;ny=y+70+rnd()*130}
     else {gap=100+rnd()*(40+40*k);ny=y-30+rnd()*90;w=Math.round(80+rnd()*50)}
+    if(f==='pit'){gap=Math.max(gap,150+rnd()*40);ny=y-rnd()*60} // яма пошире, дальний берег не ниже ближнего
+    if(f==='rock'){gap=Math.min(gap,120+rnd()*60);ny=y+(rnd()-.5)*80} // под скалой — невысокий ровный мост
+    if(f==='spk'&&!last)w=Math.max(w,230); // на площадке с шипами остаётся место встать
     ny=clampY(ny);
     if(gap>0&&ny<y){const lim=245;const d=Math.hypot(gap,y-ny);if(d>lim){gap=Math.max(60,Math.sqrt(Math.max(0,lim*lim-(y-ny)**2)))}}
-    const x0=Math.round(x+gap);p.push([x0,last?x0+FAR:x0+w,ny]);x=x0+(last?FAR:w);y=ny;prev=kind;
+    const x0=Math.round(x+gap),top=Math.min(y,ny);
+    if(f==='pit'){const py=Math.min(592,Math.max(y,ny)+Math.round(95+rnd()*40));p.push([x,x0,py,{pit:1}])} // дно в шипах ниже берегов (не ниже края экрана)
+    if(f==='rock')o.push([Math.round(x+gap*.22-20),Math.round(x0-gap*.22+20),top-Math.round(88+rnd()*30)]); // нижний край — невысоко над берегом
+    if(gap>=100&&f!=='rock')gaps.push([x,x0,top]);
+    const q=[x0,last?x0+FAR:x0+w,ny];
+    if(f==='spk')q.push({spk:[x0,x0+Math.round(last?80+rnd()*(40+40*k):Math.min(w-110,70+rnd()*(40+40*k)))]}); // шипы на ближнем крае: дотягивайся дальше
+    p.push(q);x=x0+(last?FAR:w);y=ny;prev=kind;
   }
-  return {name:NAMES[Math.floor(rnd()*NAMES.length)]+' #'+(n+1),p,start:Math.max(-60,p[0][1]-200-Math.round(rnd()*60))};
+  const L={name:(feats.length?pick(FNAMES[feats[0]]):pick(NAMES))+' #'+(n+1),p,start:Math.max(-60,p[0][1]-200-Math.round(rnd()*60))};
+  if(o.length)L.o=o;
+  if(n>=1&&gaps.length&&(n===1||rnd()<.4)){const g=pick(gaps);L.coin=[Math.round((g[0]+g[1])/2),Math.max(110,g[2]-Math.round(110+rnd()*70))]} // бонус: над пропастью, повыше
+  return L;
 }
 // ---- бесконечный путь: площадки генерируются впереди, каждая — флажок; на флажке старая часть конструкции убирается
 let endless=false,used=0,flags=0,passed=[],eg=null,themeSeed=0,originRect=null;
@@ -208,13 +237,23 @@ function egNext(){ // следующая площадка бесконечног
   // без узких столбов: после флажка на площадке остаётся только локальная конструкция, ей нужна опора пошире
   const r=rnd();let kind=r<.5?'gap':r<.75?'up':'down';
   if(kind===g.prev&&kind!=='gap'&&rnd()<.6)kind='gap';
+  // новинки после пятой площадки, не две подряд: летающий остров, яма с шипами, скала сверху
+  const q=g.n<5||g.feat?1:rnd(),feat=q<.12&&g.y<=500?'pit':q<.25?'isl':q<.36?'rock':null;g.feat=feat; // яма — только где под ней есть место
+  if(feat||g.prev==='isl')kind='gap'; // до и после острова — пропасть
   let gap=0,ny=g.y,w=Math.round(220+rnd()*160);
   if(kind==='gap'){gap=100+rnd()*(70+50*k);ny=g.y+(rnd()-.5)*(60+160*k)}
   else if(kind==='up'){gap=rnd()<.35?60+rnd()*60:0;ny=g.y-(80+rnd()*(90+90*k))}
   else if(kind==='down'){gap=rnd()<.5?0:80+rnd()*90;ny=g.y+70+rnd()*130}
+  if(feat==='pit'){gap=Math.max(gap,150+rnd()*40);ny=g.y+(rnd()-.5)*70}
+  if(feat==='rock'){gap=Math.min(gap,120+rnd()*60);ny=g.y+(rnd()-.5)*80}
+  if(feat==='isl')w=Math.round(220+rnd()*80);
   ny=clampY(ny);
   if(gap>0&&ny<g.y){const lim=245,d=Math.hypot(gap,g.y-ny);if(d>lim)gap=Math.max(60,Math.sqrt(Math.max(0,lim*lim-(g.y-ny)**2)))}
-  const x0=Math.round(g.x+gap),rect={x:x0,y:ny,w,h:900};g.x=x0+w;g.y=ny;g.prev=kind;return rect;
+  const x0=Math.round(g.x+gap),rect={x:x0,y:ny,w,h:900};
+  if(feat==='isl'){rect.h=Math.round(60+rnd()*20);rect.k='isl'}
+  if(feat==='pit'){terrain.push(mkRect([g.x,x0,Math.min(585,Math.max(g.y,ny)+Math.round(95+rnd()*40)),{pit:1}]));spiky=true}
+  if(feat==='rock')terrain.push(mkRock([Math.round(g.x+gap*.22-20),Math.round(x0-gap*.22+20),Math.min(g.y,ny)-Math.round(88+rnd()*30)]));
+  g.x=x0+w;g.y=ny;g.prev=feat==='isl'?'isl':kind;return rect;
 }
 function egFill(){ // держим впереди минимум 6 непройденных площадок
   while(cps.length-cp<6){const r=egNext();terrain.push(r);cps.push(r)}
@@ -223,7 +262,7 @@ function egFill(){ // держим впереди минимум 6 непрой�
 function loadEndless(){
   leaveBridge();endless=true;won=lost=false;clearTimeout(t0);
   let a=(Date.now()^0x5bd1e995)>>>0;const rnd=()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296};
-  const y0=520;originRect={x:-600,y:y0,w:1000,h:900};terrain=[originRect];
+  const y0=520;originRect={x:-600,y:y0,w:1000,h:900};terrain=[originRect];goalR=null;coin=null;pops=[];spiky=false;hintK=null;
   eg={rnd,x:400,y:y0,prev:'',n:0};cps=[];cp=0;cpT=0;cpJ=-1;cpSnap=null;toast=null;passed=[];flags=0;used=1;
   L={name:'Бесконечный путь',p:[],start:220,endless:true};
   egFill();goalX=1e9;goalTop=0;
@@ -235,6 +274,7 @@ function loadEndless(){
 }
 function endlessFlag(P,reached){ // флажок взят: чистим всё, что осталось позади площадки P
   flags+=reached;passed.push(P);if(passed.length>4)passed.shift();
+  for(const r of terrain)if(r.k&&HINTS[r.k]&&r.x<=P.x&&!prog.seen[r.k]){prog.seen[r.k]=1;saveProg()}
   if(!prog.inf){limit+=E_BONUS*reached;prog.coins+=2*reached;saveProg()}
   const keep=nodes.map(n=>n.x>=P.x-R&&n.x<=P.x+P.w+R);
   if(!keep.some(Boolean))keep.fill(true);
@@ -249,7 +289,8 @@ function endlessFlag(P,reached){ // флажок взят: чистим всё, 
   const tier=Math.floor(flags/5),old=Math.floor((flags-reached)/5);
   if(tier!==old){TH=THEMES[themeIdx(themeSeed+tier)];makeSky();document.body.style.background=TH.sky[0]}
   const rec=prog.endless||0;if(!prog.inf&&flags>rec){prog.endless=flags;saveProg()}
-  toast={t:tier!==old?'Флажок '+flags+' · новая локация! +'+E_BONUS+' шариков':'Флажок '+flags+' · старая часть убрана'+(prog.inf?'':', +'+E_BONUS*reached+' шариков'),life:150};
+  const plus=prog.inf?'':' +'+E_BONUS*reached+' шариков'; // в режиме ∞ шарики не прибавляются; за несколько флажков разом — за каждый
+  toast={t:tier!==old?'Флажок '+flags+' · новая локация!'+plus:'Флажок '+flags+' · старая часть убрана'+(plus&&','+plus),life:150};
 }
 function endlessCenter(P){ // оставшаяся фигура заново ставится по центру площадки флажка (центр — по габаритам)
   if(!nodes.length){bars=[];addNode(P.x+P.w/2,P.y-R);return}
@@ -257,7 +298,7 @@ function endlessCenter(P){ // оставшаяся фигура заново с�
   let dx=P.x+P.w/2-(x0+x1)/2;const dy=P.y-R-y1;
   for(let it=0;it<4;it++){let moved=false; // не въезжаем в соседние (более высокие) площадки
     for(const r of terrain){if(r===P)continue;let L=0,Rt=0;
-      for(const n of nodes){const x=n.x+dx,y=n.y+dy;if(y+R<=r.y||x+R<=r.x||x-R>=r.x+r.w)continue;L=Math.max(L,x+R-r.x);Rt=Math.max(Rt,r.x+r.w-(x-R))}
+      for(const n of nodes){const x=n.x+dx,y=n.y+dy;if(y+R<=r.y||y-R>=r.y+r.h||x+R<=r.x||x-R>=r.x+r.w)continue;L=Math.max(L,x+R-r.x);Rt=Math.max(Rt,r.x+r.w-(x-R))}
       if(L>0){dx+=r.x+r.w/2>P.x+P.w/2?-L-.5:Rt+.5;moved=true}}
     if(!moved)break}
   if(Math.abs(dx)+Math.abs(dy)>2)for(const b of bars.slice(0,40)){const a=nodes[b.a],c=nodes[b.b];debris.push({x1:a.x,y1:a.y,x2:c.x,y2:c.y,vx:0,vy:-.3,r:0,vr:0,life:30,fade:true})}
@@ -293,7 +334,7 @@ function loadBridge(i){
   clearTimeout(t0);endless=false;originRect=null;passed=[];bridge=true;bIdx=i;BL=BLEVELS[i];document.body.classList.toggle('bridge',true);
   prog.bridge.cur=i;prog.mode='br';saveProg();
   themeSeed=300+i;par=BL.par;limit=prog.inf?Infinity:limitFor(par);TH=THEMES[themeIdx(themeSeed)];makeSky();document.body.style.background=TH.sky[0];
-  terrain=BL.p.map(([x0,x1,y])=>({x:x0,y,w:x1-x0,h:900}));
+  terrain=BL.p.map(([x0,x1,y])=>({x:x0,y,w:x1-x0,h:900}));goalR=terrain[terrain.length-1];coin=null;pops=[];spiky=false;hintK=null;
   const A=bAnchors(BL);BL.anc=A;const pl=BL.p[0],pr=BL.p[BL.p.length-1]; // пандусы: с земли на уровень палок у крайних болтов
   BL.ramps=[[{x:pl[1]-50,y:pl[2]+BT},{x:A[0][0],y:A[0][1]}],[{x:A[1][0],y:A[1][1]},{x:pr[0]+50,y:pr[2]+BT}]];goalX=A[1][0]+60;goalTop=terrain[terrain.length-1].y;
   cps=[];cp=0;cpT=0;cpJ=-1;cpSnap=null;toast=null;nodes=[];bars=[];hist=[];winT=0;debris=[];broken=0;
@@ -430,7 +471,7 @@ function drawBridge(nr){
 const ballsUsed=()=>endless||bridge?used:nodes.length; // мосты: считаем поставленные шарики — упавшие в пропасть не возвращаются
 const BIG_GAP=BLEVELS.findIndex(B=>B.p.some((q,k)=>k&&q[0]-B.p[k-1][1]>=500)); // первый мост с пролётом ≥500: подсказка строить с двух берегов
 function levelName(i){return i<LEVELS.length?LEVELS[i].name:genLevel(i).name}
-// норма шариков: сколько потратил бот-строитель (жадный, строит треугольниками, палки ломаются) на уровнях 1–150; дальше — оценка по длине и подъёму
+// норма шариков: уровни 1–12 — сколько потратил прежний бот-строитель; 13–150 — бот tools/bot.js ×1.1 (tools/par.js); дальше — оценка по длине и подъёму
 const PAR=[9,12,12,12,15,12,18,17,21,13,18,18,15,8,7,13,16,18,8,23,13,15,8,12,8,14,10,5,24,12,18,23,14,22,17,21,18,26,7,11,14,11,21,21,25,0,14,14,15,22,22,19,19,13,17,15,22,21,20,20,17,23,17,11,20,25,8,25,14,13,16,15,18,24,24,12,17,21,7,13,15,14,14,24,18,10,12,20,9,12,22,14,16,18,22,21,21,13,19,20,12,23,12,25,22,11,8,23,13,15,19,19,14,0,7,18,21,9,14,15,14,14,23,21,0,11,15,15,16,61,24,20,22,12,23,16,24,11,20,16,21,31,12,15,37,13,25,16,12,14];
 function parFor(i){const v=PAR[i];if(v)return Math.min(v,30);const L=i<LEVELS.length?LEVELS[i]:genLevel(i),q=L.p;
   return Math.min(30,Math.round(.0162*(q[q.length-1][0]-L.start)+.0094*Math.max(0,q[0][2]-q[q.length-1][2])+4))}
@@ -439,6 +480,15 @@ function starsFor(k,par){return k<=par?3:k<=par+Math.ceil(par*.3)?2:1}
 const cv=document.getElementById('c'),ctx=cv.getContext('2d');
 let lvlIdx=0,L,terrain,goalX,goalTop,nodes,bars,ghost=null,hover=null,won=false,lost=false,t0=0,winT=0,hist=[];
 let cpJ=-1,debris=[],broken=0,par=0,limit=0,cps=[],cp=0,cpT=0,cpSnap=null,toast=null,camX=null,minX=0,maxX=W;
+const COIN_BONUS=5;
+// goalR — площадка-цель; coin — бонусная монетка уровня; pops — вспышки лопнувших шариков и взятой монетки;
+// hintK — подсказка про новинку уровня; spiky — есть ли на уровне шипы
+let goalR=null,coin=null,pops=[],hintK=null,spiky=false;
+// площадка/остров/дно ямы из описания уровня и скала сверху (свисает с неба до y)
+function mkRect(q){const o=q[3]||{},r={x:q[0],y:q[2],w:q[1]-q[0],h:o.h||900};if(o.h)r.k='isl';if(o.pit){r.k='pit';r.spk=[q[0],q[1]]}else if(o.spk)r.spk=o.spk;return r}
+function mkRock(q){return{x:q[0],y:-1200,w:q[1]-q[0],h:q[2]+1200,k:'rock'}}
+const onSpikes=(p,r,pad)=>r.spk&&p.x>r.spk[0]-pad&&p.x<r.spk[1]+pad&&p.y+R>r.y-SPK+3&&p.y-R<r.y+2; // шарик в зоне шипов
+function flagX(r){const x=r.x+Math.min(30,r.w/2);return r.spk&&r.spk[0]<=x+10?Math.min(r.x+r.w-12,r.spk[1]+24):x} // флажок — на безопасной части
 const $=id=>document.getElementById(id);
 const hasOwnP=(o,k)=>Object.prototype.hasOwnProperty.call(o,k); // Object.hasOwn нет в старых WebView
 // ---- прогресс: сколько уровней открыто и на каком остановился
@@ -446,11 +496,12 @@ const SK='mostostroitel.progress';
 const UNLOCK_INF=50; // после 50 пройденных уровней открывается режим без лимита шариков
 function parseBr(o){const r={best:0,cur:0,stars:{}};if(o&&typeof o==='object'){r.best=Math.max(0,Math.min(BLEVELS.length,o.best|0));r.cur=Math.max(0,Math.min(r.best,BLEVELS.length-1,o.cur|0));
   if(o.stars&&typeof o.stars==='object'&&!Array.isArray(o.stars))for(let i=0;i<BLEVELS.length;i++){const v=Math.max(0,Math.min(3,Math.floor(+o.stars[i]||0)));if(v)r.stars[i]=v}}return r} // прогресс мостов
-let prog={best:0,cur:0,stars:{},inf:false,skin:'classic',coins:0,owned:['classic'],set:{anim:true,legend:true,zone:true},bridge:parseBr(),mode:'lv'};
+const plainObj=o=>o&&typeof o==='object'&&!Array.isArray(o)?o:{};
+let prog={best:0,cur:0,stars:{},inf:false,skin:'classic',coins:0,owned:['classic'],set:{anim:true,legend:true,zone:true},bridge:parseBr(),mode:'lv',seen:{},bonus:{}};
 try{const v=JSON.parse(localStorage.getItem(SK)||'null');if(v&&Number.isInteger(v.best)&&Number.isInteger(v.cur)){const b=Math.min(10000,Math.max(0,v.best));prog={best:b,cur:Math.max(0,Math.min(v.cur,b)),stars:(v.stars&&typeof v.stars==='object'&&!Array.isArray(v.stars))?v.stars:{},inf:v.inf===true&&b>=UNLOCK_INF,endless:Math.max(0,Math.min(1e6,v.endless|0)),skin:typeof v.skin==='string'?v.skin:'classic',
     coins:Number.isFinite(v.coins)?Math.max(0,Math.min(1e9,v.coins|0)):null,
     owned:Array.isArray(v.owned)?v.owned.filter(k=>typeof k==='string'):null,
-    set:Object.assign({anim:true,legend:true,zone:true},v.set&&typeof v.set==='object'?v.set:{}),bridge:parseBr(v.bridge),mode:v.mode==='br'?'br':'lv'};
+    set:Object.assign({anim:true,legend:true,zone:true},v.set&&typeof v.set==='object'?v.set:{}),bridge:parseBr(v.bridge),mode:v.mode==='br'?'br':'lv',seen:plainObj(v.seen),bonus:plainObj(v.bonus)};
   // старые сохранения без монет: начисляем за уже пройденное, выбранный скин оставляем купленным
   if(prog.coins===null){let c=0;for(let i=0;i<prog.best;i++)c+=10+5*Math.min(3,Math.max(0,prog.stars[i]|0));prog.coins=c}
   if(!prog.owned)prog.owned=['classic']}}catch(e){console.error('progress parse',e);try{const raw=localStorage.getItem(SK);if(raw)localStorage.setItem(SK+'.bak',raw)}catch(_){}}
@@ -463,15 +514,28 @@ function load(i){
   lvlIdx=i; L=i<LEVELS.length?LEVELS[i]:genLevel(i);
   prog.cur=i;if(i>prog.best)prog.best=i;saveProg();
   par=parFor(i);limit=prog.inf?Infinity:limitFor(par);TH=THEMES[themeIdx(i)];makeSky();document.body.style.background=TH.sky[0];
-  terrain=L.p.map(([x0,x1,y])=>({x:x0,y,w:x1-x0,h:900}));
-  const g=terrain[terrain.length-1]; goalX=g.x; goalTop=g.y;
-  cps=terrain.slice(1,-1);cp=0;cpT=0;cpJ=-1;cpSnap=null;toast=null;
+  terrain=L.p.map(mkRect);
+  const g=terrain[terrain.length-1]; goalR=g; goalX=g.x; goalTop=g.y;
+  cps=terrain.slice(1,-1).filter(r=>r.k!=='pit');cp=0;cpT=0;cpJ=-1;cpSnap=null;toast=null;
+  if(L.o)for(const q of L.o)terrain.push(mkRock(q));
+  coin=L.coin&&!prog.bonus[i]?{x:L.coin[0],y:L.coin[1]}:null;pops=[];spiky=terrain.some(r=>r.spk);
+  hintK=levelHint();
   const x=L.start,gy=terrain[0].y; nodes=[];bars=[];hist=[];winT=0;debris=[];broken=0;
   minX=x-260;maxX=goalX+320;camX=null;
   addNode(x,gy-R);used=1;
   won=lost=false; $('ov').hidden=true;
   $('lvl').textContent='Уровень '+(i+1)+' · '+L.name; updCnt();
 }
+const HINTS={isl:['летающий остров —','на него можно опереться'],pit:['на дне ямы шипы —','шарик там лопнет'],spk:['осторожно, шипы!','дотянись подальше'],
+  rock:['скала сверху —','строй мост пониже'],coin:['монетка! дотянись','шариком: +'+COIN_BONUS]};
+function levelHint(x0=-1e9,x1=1e9){ // x0..x1 — только в этом отрезке (для бесконечного пути — в кадре)
+  const t=terrain.filter(r=>r.x+r.w>=x0&&r.x<=x1),f=[];
+  // текст — выше флажков (флажок 56 в высоту), про яму — над её берегами
+  for(const r of t){if(r.k==='isl')f.push(['isl',r.x+r.w/2,r.y-110]);else if(r.k==='pit')f.push(['pit',r.x+r.w/2,r.y-290]);
+    else if(r.spk)f.push(['spk',(r.spk[0]+r.spk[1])/2,r.y-120]);else if(r.k==='rock')f.push(['rock',r.x-110,r.y+r.h-30])} // про скалу — слева от неё, выше просвета
+  if(coin)f.push(['coin',coin.x,coin.y-60]);
+  for(const[k,x,y]of f)if(!prog.seen[k])return{k,x,y};
+  return null}
 function addNode(x,y){nodes.push({x,y,px:x,py:y,g:false,on:null});return nodes.length-1}
 function snap(){return{n:nodes.map(o=>({...o})),b:bars.map(o=>({...o})),u:used}}
 function addBar(a,b){bars.push({a,b,len:Math.hypot(nodes[a].x-nodes[b].x,nodes[a].y-nodes[b].y),s:0})}
@@ -507,6 +571,12 @@ function barHit(b){ // палка не проходит сквозь землю:
     }
   }
 }
+// убрать шарики по условию pred(шарик, номер) вместе с их палками
+function dropNodes(pred){
+  const del=nodes.map(pred);
+  const map=[];let j=0;nodes=nodes.filter((n,i)=>{map[i]=del[i]?-1:j++;return !del[i]});
+  bars=bars.filter(b=>map[b.a]>=0&&map[b.b]>=0);for(const b of bars){b.a=map[b.a];b.b=map[b.b]}
+}
 function step(){
   if(anyScreen())return; // пауза, пока открыто меню
   for(const n of nodes){
@@ -522,10 +592,18 @@ function step(){
   }
   for(const n of nodes)if(n.g)n.px=n.x-(n.x-n.px)*.25; // трение о землю
   // упавшее далеко в пропасть убираем вместе с палками (история хранит полные снимки, её не трогаем)
-  if(nodes.some(n=>n.y>1600)){
-    const map=[];let j=0;nodes=nodes.filter((n,i)=>{const keep=n.y<=1600;map[i]=keep?j++:-1;return keep});
-    bars=bars.filter(b=>map[b.a]>=0&&map[b.b]>=0);for(const b of bars){b.a=map[b.a];b.b=map[b.b]}
-    updCnt();
+  if(nodes.some(n=>n.y>1600)){dropNodes(n=>n.y>1600);updCnt()}
+  // шипы: опустившийся в них шарик лопается, его палки падают обломками
+  if(spiky&&nodes.some(n=>terrain.some(r=>onSpikes(n,r,0)))){
+    const del=nodes.map(n=>terrain.some(r=>onSpikes(n,r,0)));
+    for(const b of bars)if(del[b.a]||del[b.b]){const a=nodes[b.a],c=nodes[b.b];debris.push({x1:a.x,y1:a.y,x2:c.x,y2:c.y,vx:(Math.random()-.5)*2,vy:-1.5,r:0,vr:(Math.random()-.5)*.2,life:60})}
+    nodes.forEach((n,i)=>{if(del[i])pops.push({x:n.x,y:n.y,life:24})});
+    dropNodes((n,i)=>del[i]);toast={t:'Пш-ш! Шарик лопнул на шипах',life:120,bad:true};updCnt();
+  }
+  for(const q of pops)q.life--;if(pops.length)pops=pops.filter(q=>q.life>0);
+  if(coin&&!won&&!lost&&nodes.some(n=>(n.x-coin.x)**2+(n.y-coin.y)**2<(R+13)**2)){ // бонусная монетка: один раз на уровень
+    prog.coins+=COIN_BONUS;prog.bonus[lvlIdx]=1;saveProg();pops.push({x:coin.x,y:coin.y,life:30,gold:true});coin=null;
+    toast={t:'Бонусная монетка! +'+COIN_BONUS+' монет',life:150};
   }
   if(bridge)brStrain();else for(const b of bars){const a=nodes[b.a],c=nodes[b.b];b.s=Math.abs(Math.hypot(c.x-a.x,c.y-a.y)-b.len)/b.len;b.o=b.s>BREAK?(b.o||0)+1:Math.max(0,(b.o||0)-2)}
   // перегруженные палки лопаются: обломки падают, конструкция живёт дальше без них
@@ -540,7 +618,7 @@ function step(){
   debris=debris.filter(d=>d.life>0);
   if(bridge){if(!won&&!lost)bridgeCheck()}
   else if(!won&&!lost){
-    const goal=terrain[terrain.length-1];
+    const goal=goalR;
     if(cp<cps.length){ // дальний достигнутый флажок: шарик стоит на площадке ~1 с, конструкция не падает
       let j=-1;for(let q=cps.length-1;q>=cp;q--)if(nodes.some(n=>n.on===cps[q])){j=q;break}
       const calm=nodes.every(n=>Math.abs(n.x-n.px)+Math.abs(n.y-n.py)<.8);
@@ -557,6 +635,7 @@ function step(){
   }
 }
 function winMsg(){
+  if(hintK){prog.seen[hintK.k]=1;hintK=null}
   const k=nodes.length,st=starsFor(k,par),inf=!!prog.inf,oldSt=prog.stars[lvlIdx]|0,first=lvlIdx+1>prog.best;
   if(!inf)prog.stars[lvlIdx]=Math.max(oldSt,st);
   const gain=(first?10:0)+(inf?0:5*Math.max(0,st-oldSt));prog.coins+=gain;saveProg();
@@ -605,7 +684,7 @@ function toWorldPtr(e){const p=toWorld(e);if(e.pointerType==='touch')p.y-=TOUCH_
 let hoverS=null; // последняя позиция мыши на экране
 function syncHover(){if(hoverS&&!ghost){hover={x:(hoverS.x-ox)/sc,y:(hoverS.y-oy)/sc}}}
 function candidates(p){
-  const inside=terrain.some(r=>p.x>r.x-R&&p.x<r.x+r.w+R&&p.y>r.y-R&&p.y<r.y+r.h+R);
+  const inside=terrain.some(r=>(p.x>r.x-R&&p.x<r.x+r.w+R&&p.y>r.y-R&&p.y<r.y+r.h+R)||onSpikes(p,r,R));
   const ds=nodes.map((n,i)=>({i,d:Math.hypot(n.x-p.x,n.y-p.y)}));
   const tooClose=ds.some(o=>o.d<MINL); // при tooClose ok=false, поэтому отдельный фильтр d>=MINL не нужен
   const all=ds.filter(o=>o.d<=MAXL&&!blocked(nodes[o.i],p)).sort((a,b)=>a.d-b.d),c=all.slice(0,2);
@@ -695,7 +774,7 @@ for(const [id,key] of [['stAnim','anim'],['stLegend','legend'],['stZone','zone']
 $('stReset').onclick=()=>{ // подтверждение вторым нажатием в течение 4 секунд
   const now=Date.now();if(now-resetArm>4000){resetArm=now;$('stReset').textContent='Точно? Нажми ещё раз';return}
   try{localStorage.removeItem(SK)}catch(_){}
-  prog={best:0,cur:0,stars:{},inf:false,skin:'classic',coins:0,owned:['classic'],set:{anim:true,legend:true,zone:true},endless:0,bridge:parseBr(),mode:'lv'};saveProg();applySet();load(0);openMain()};
+  prog={best:0,cur:0,stars:{},inf:false,skin:'classic',coins:0,owned:['classic'],set:{anim:true,legend:true,zone:true},endless:0,bridge:parseBr(),mode:'lv',seen:{},bonus:{}};saveProg();applySet();load(0);openMain()};
 $('mmPlay').onclick=()=>{hideScreens()};
 $('mmLevels').onclick=()=>openMenu();
 $('mmBridges').onclick=()=>openBridges();
@@ -710,6 +789,24 @@ const clouds=[[120,90,1],[430,150,.8],[760,70,1.2],[930,190,.7]],CLOUD_P=1400;
 const rm=matchMedia('(prefers-reduced-motion: reduce)');let still=rm.matches;
 rm.addEventListener?.('change',()=>applySet());
 const noHover=matchMedia('(hover: none)');
+// шипы: ряд треугольников на отрезке [x0,x1] верха площадки y
+function drawSpikes(x0,x1,y){const n=Math.max(1,Math.round((x1-x0)/12)),w=(x1-x0)/n;ctx.beginPath();
+  for(let k=0;k<n;k++){const a=x0+k*w;ctx.moveTo(a,y+1);ctx.lineTo(a+w/2,y-SPK);ctx.lineTo(a+w,y+1)}
+  ctx.fillStyle='#dfe4ea';ctx.fill();ctx.strokeStyle='#59616b';ctx.lineWidth=1.5;ctx.lineJoin='round';ctx.stroke();ctx.lineJoin='miter'}
+// летающий остров: земля со скруглённым низом и тенью снизу
+function drawIsland(t){const{x,y,w,h}=t,r=Math.min(18,h/2);ctx.fillStyle=TH.ground;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+w,y);ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.closePath();ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,.16)';ctx.fillRect(x+r*.5,y+h-7,w-r,5);ctx.fillStyle=TH.top;ctx.fillRect(x,y,w,TH.topH)}
+// скала сверху: от края экрана до низа y+h, низ неровный (кончики ровно по границе скалы)
+function drawRock(t,vy0){const{x,w}=t,b=t.y+t.h,top=Math.min(b-20,vy0-10),n=Math.max(2,Math.round(w/22)),s=w/n;
+  ctx.fillStyle=TH.ground;ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x+w,top);ctx.lineTo(x+w,b-9);
+  for(let k=n-1;k>=0;k--){ctx.lineTo(x+k*s+s/2,b);ctx.lineTo(x+k*s,b-9)}ctx.closePath();ctx.fill();
+  ctx.fillStyle=TH.id==='winter'?'rgba(255,255,255,.75)':'rgba(0,0,0,.18)';ctx.fillRect(x,b-16,w,5)}
+// бонусная монетка
+function drawCoin(x,y,time){const r=12,sq=still?1:Math.abs(Math.cos(time*.002))*.7+.3; // «вращается» — сжимается по горизонтали
+  ctx.save();ctx.translate(x,y);ctx.scale(sq,1);const g=ctx.createRadialGradient(-4,-4,1,0,0,r);g.addColorStop(0,'#ffe58a');g.addColorStop(1,'#e0a21a');
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,r,0,7);ctx.fill();ctx.strokeStyle='#c98b10';ctx.lineWidth=2.5;ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,255,.7)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,r*.55,-2.4,-1.2);ctx.stroke();ctx.restore()}
 function cloud(x,y,s){ctx.beginPath();[[0,0,26],[28,-12,30],[60,0,24],[30,6,26]].forEach(([dx,dy,r])=>ctx.arc(x+dx*s,y+dy*s,r*s,0,7));ctx.fill()}
 // ---- скины: как рисуются палки и крепления
 // ---- скины: как рисуются палки и крепления. price — цена в монетах
@@ -908,24 +1005,29 @@ function draw(time){
     for(let xx=base+Math.floor((vx0-200-base)/CLOUD_P)*CLOUD_P;xx<vx1+50;xx+=CLOUD_P)cloud(xx,y,s);
   }
   // земля: крайние блоки дотягиваем до краёв экрана, все — до низа (только отрисовка)
-  let li=0;terrain.forEach((t,i)=>{if(t.x<terrain[li].x)li=i});const gi=terrain.length-1;
+  let li=-1;terrain.forEach((t,i)=>{if(!t.k&&(li<0||t.x<terrain[li].x))li=i}); // крайняя левая земля (не остров и не скала)
   const bot=Math.max(vy1+10,0);
   terrain.forEach((t,i)=>{
-    let x0=t.x,x1=t.x+t.w;if(i===li&&(!endless||t===originRect))x0=Math.min(x0,vx0-10);if(i===gi&&!endless)x1=Math.max(x1,vx1+10);
+    if(t.k==='rock'){drawRock(t,vy0);return}
+    if(t.k==='isl'){drawIsland(t);if(t.spk)drawSpikes(t.spk[0],t.spk[1],t.y);return}
+    let x0=t.x,x1=t.x+t.w;if(i===li&&(!endless||t===originRect))x0=Math.min(x0,vx0-10);if(t===goalR&&!endless)x1=Math.max(x1,vx1+10);
     const y1=Math.max(t.y+t.h,bot);
     ctx.fillStyle=TH.ground;ctx.fillRect(x0-1,t.y,x1-x0+2,y1-t.y);ctx.fillStyle=TH.top;ctx.fillRect(x0,t.y,x1-x0,TH.topH);
+    if(t.spk)drawSpikes(t.spk[0],t.spk[1],t.y);
   });
   // промежуточные флажки
-  cps.forEach((r,j)=>{const fx=endless?r.x+r.w/2:r.x+Math.min(30,r.w/2),fy=r.y,done=j<cp;
+  cps.forEach((r,j)=>{const fx=endless?r.x+r.w/2:flagX(r),fy=r.y,done=j<cp;
     ctx.strokeStyle=inkA(1);ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(fx,fy-44);ctx.stroke();
     ctx.fillStyle=done?'#4caf6a':'rgba(255,255,255,.9)';ctx.beginPath();ctx.moveTo(fx+1,fy-44);ctx.lineTo(fx+30,fy-36);ctx.lineTo(fx+1,fy-28);ctx.fill();
     if(j===cpJ&&cpT>0){ctx.strokeStyle='#4caf6a';ctx.lineWidth=4;ctx.beginPath();ctx.arc(fx+14,fy-58,9,-Math.PI/2,-Math.PI/2+Math.PI*2*cpT/60);ctx.stroke()}});
-  for(const r of passed){const fx=endless?r.x+r.w/2:r.x+Math.min(30,r.w/2),fy=r.y;ctx.strokeStyle=inkA(1);ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(fx,fy-44);ctx.stroke();
+  for(const r of passed){const fx=endless?r.x+r.w/2:flagX(r),fy=r.y;ctx.strokeStyle=inkA(1);ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(fx,fy-44);ctx.stroke();
     ctx.fillStyle='#4caf6a';ctx.beginPath();ctx.moveTo(fx+1,fy-44);ctx.lineTo(fx+30,fy-36);ctx.lineTo(fx+1,fy-28);ctx.fill()}
   // финишная линия
   if(!endless){ctx.setLineDash([10,10]);ctx.strokeStyle=TH.line;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(goalX,goalTop);ctx.lineTo(goalX,bridge?Math.min(goalTop,(60-oy)/sc):Math.min(-200,vy0));ctx.stroke();ctx.setLineDash([]);
-  ctx.strokeStyle=inkA(1);ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(goalX+40,goalTop);ctx.lineTo(goalX+40,goalTop-56);ctx.stroke();
-  ctx.fillStyle='#f2b43a';ctx.beginPath();ctx.moveTo(goalX+41,goalTop-56);ctx.lineTo(goalX+80,goalTop-46);ctx.lineTo(goalX+41,goalTop-36);ctx.fill()}
+  const gf=goalR&&goalR.spk?goalR.spk[1]+24:goalX+40; // флаг цели — за шипами
+  ctx.strokeStyle=inkA(1);ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(gf,goalTop);ctx.lineTo(gf,goalTop-56);ctx.stroke();
+  ctx.fillStyle='#f2b43a';ctx.beginPath();ctx.moveTo(gf+1,goalTop-56);ctx.lineTo(gf+40,goalTop-46);ctx.lineTo(gf+1,goalTop-36);ctx.fill()}
+  if(coin)drawCoin(coin.x,coin.y+(still?0:Math.sin(time*.004)*3),time);
   const nr=Math.max(R+2,6/sc); // на мелком масштабе шарик не меньше ~6 px на экране
   // призрак
   const gp=ghost||(won||lost||testing?null:hover);
@@ -944,6 +1046,12 @@ function draw(time){
   for(const d of debris){ctx.globalAlpha=Math.min(1,d.life/30)*(d.fade?.5:1);ctx.strokeStyle=d.fade?inkA(1):'#d8453b';ctx.beginPath();ctx.moveTo(d.x1,d.y1);ctx.lineTo(d.x2,d.y2);ctx.stroke()}ctx.globalAlpha=1;
   drawNodesSkin(ctx,nr,prog.skin,bridge?nodes.slice(nPin):nodes); // болты рисует drawBridge — без лиц скина
   if(bridge)drawBridge(nr);
+  for(const q of pops){const k=1-q.life/(q.gold?30:24);ctx.globalAlpha=1-k;ctx.strokeStyle=q.gold?'#f2b43a':inkA(1);ctx.lineWidth=3;ctx.beginPath();
+    if(q.gold)for(let a=0;a<8;a++){const t=a*Math.PI/4;ctx.moveTo(q.x+Math.cos(t)*(10+k*14),q.y+Math.sin(t)*(10+k*14));ctx.lineTo(q.x+Math.cos(t)*(16+k*22),q.y+Math.sin(t)*(16+k*22))}
+    else{ctx.moveTo(q.x+R+k*16,q.y);ctx.arc(q.x,q.y,R+k*16,0,7)}ctx.stroke()}ctx.globalAlpha=1;
+  const hk=endless?levelHint(vx0,vx1+200):hintK&&ballsUsed()<7?hintK:null;
+  if(hk&&!won&&!lost){const hintK=hk,h=HINTS[hintK.k];ctx.fillStyle=inkA(1);ctx.font='600 30px Caveat, cursive';ctx.textAlign='center';
+    const x=Math.max(vx0+150,Math.min(vx1-150,hintK.x));ctx.fillText(h[0],x,hintK.y);ctx.fillText(h[1],x,hintK.y+34);ctx.textAlign='start'}
   // подсказки
   if(L.hint&&nodes.length<4){ctx.fillStyle=inkA(1);ctx.font='600 30px Caveat, cursive';
     const narrow=vx1-vx0<800,hx=Math.max(60,vx0+16);
