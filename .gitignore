@@ -9,3 +9,5 @@ build/
 *.apk
 *.aab
 *.idsig
+__pycache__/
+*.pyc
