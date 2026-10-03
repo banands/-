@@ -17,10 +17,10 @@
 ## Сборка APK
 
 ```sh
-KEYSTORE_PASSWORD=… python3 android/build_apk.py --version-name 0.20 --version-code 22 --keystore путь/к/mostostroitel-key.jks
+KEYSTORE_PASSWORD=… python3 android/build_apk.py --version-name 0.22 --version-code 24 --keystore путь/к/mostostroitel-key.jks
 ```
 
-Результат — `build/Mostostroitel-0.20.apk`. `versionCode` каждый раз должен расти, иначе телефон не поставит обновление: выпущенные версии записаны в `android/released.txt`
+Результат — `build/Mostostroitel-0.22.apk`. `versionCode` каждый раз должен расти, иначе телефон не поставит обновление: выпущенные версии записаны в `android/released.txt`
 (скрипт сам дописывает туда новую после подписи и не даст собрать с кодом не больше уже выпущенного).
 Подпись — схема v2 (minSdk 24), отпечаток ключа SHA-256 `D9:BA:BB:2E:…:1C:42:D3`. Ключ и пароль в репозиторий не кладутся (`.gitignore`).
 

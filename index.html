@@ -181,7 +181,7 @@
     <label class="tg"><input type="checkbox" id="stLegend"><span>Подсказка про нагрузку</span></label>
     <label class="tg"><input type="checkbox" id="stZone"><span>Граница зоны досягаемости</span></label>
     <button id="stReset" type="button" class="danger">Сбросить прогресс</button>
-    <button id="setBack" class="ghost" type="button">← Назад</button><p class="ver">версия 0.21</p></div></div>
+    <button id="setBack" class="ghost" type="button">← Назад</button><p class="ver">версия 0.22</p></div></div>
   <div class="overlay" id="ov" hidden><div class="card"><h2 id="ovT"></h2><p id="ovP"></p><div class="row"><button id="ovB" type="button"></button><button id="ovB2" class="ghost" type="button" hidden></button><button id="ovB3" class="ghost" type="button" hidden></button></div></div></div>
 </div>
 
@@ -519,7 +519,7 @@ function drawBridge(nr){
   if(bIdx===BIG_GAP&&!testing&&ballsUsed()<4&&!(prog.bridge.stars[bIdx]>0)){ctx.fillStyle=inkA(1);ctx.font='600 30px Caveat, cursive';ctx.textAlign='center';const a=BL.anc[0],b=BL.anc[1],mx=(a[0]+b[0])/2;
     ctx.fillText('строй с двух берегов навстречу —',mx,a[1]-150);ctx.fillText('так мост не провиснет',mx,a[1]-115);ctx.textAlign='start'}
 }
-const ballsUsed=()=>endless||bridge?used:nodes.reduce((s,n)=>s+(n.st?2:1),0); // мосты: считаем поставленные шарики — упавшие в пропасть не возвращаются
+const ballsUsed=()=>used; // поставленные шарики (сталь — за 2): лопнувшие на шипах и упавшие в пропасть не возвращаются, отмена хода — возвращает
 const BIG_GAP=BLEVELS.findIndex(B=>B.p.some((q,k)=>k&&q[0]-B.p[k-1][1]>=500)); // первый мост с пролётом ≥500: подсказка строить с двух берегов
 function levelName(i){return i<LEVELS.length?LEVELS[i].name:genLevel(i).name}
 // норма шариков: уровни 1–12 — сколько потратил прежний бот-строитель; 13–150 — бот tools/bot.js ×1.1 (tools/par.js); дальше — оценка по длине и подъёму
