@@ -573,7 +573,7 @@ function load(i){
 }
 // особый уровень — уровень дня или свой: {kind:'daily'|'custom', L, title, seed, coinKey?, day?, idx?, edit?}
 function loadSpecial(sp){
-  leaveBridge();special=sp;themeSeed=sp.seed;par=parEst(sp.L);setupLevel(sp.L,themeIdx(sp.seed),sp.coinKey??null);
+  leaveBridge();special=sp;themeSeed=sp.seed;par=sp.par||parEst(sp.L);setupLevel(sp.L,themeIdx(sp.seed),sp.coinKey??null);if(sp.noLimit)limit=Infinity;
   $('lvl').textContent=sp.title;updCnt();
 }
 function restart(){clearTimeout(t0);thinking=null;bridge?loadBridge(bIdx):endless?loadEndless():special?loadSpecial(special):load(lvlIdx)}
@@ -731,12 +731,15 @@ const plural=(n,a,b,c)=>{const m=n%100,d=n%10;return m>10&&m<20?c:d===1?a:d>1&&d
 const dayKey=(t=new Date())=>t.getFullYear()*10000+(t.getMonth()+1)*100+t.getDate(); // 20261003
 const MONTHS=['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
 const dayLabel=d=>(d%100)+' '+MONTHS[((d/100|0)%100)-1];
-// DAILY_SALT — дни, где бот-строитель не прошёл уровень за 40 шариков: другой вариант генерации (tools/daily_check.js --reroll)
-const DAILY_SALT={};
-function dailyLevel(d){const L=genLv((Math.imul(d,0x2C1B3C6D)^Math.imul(DAILY_SALT[d]|0,0x85EBCA6B))>>>0,16,true);L.name='Уровень дня';return L}
+// уровни дня на год вперёд, проверенные ботом (tools/daily_check.js --reroll): по 2 знака на день начиная с DAILY0 —
+// норма на три звезды (base36; 0 — нет данных: норма по формуле и без лимита шариков) и «соль» генератора (другой вариант, если первый не прошёлся)
+const DAILY0=[2026,9,3],DAILY='h0n0i0k0e0k0c090m0n0k1u0b0i0i0e0o0i070k0f070p0c0i0i0l0d0s0k0l0j0c0e0b0k0d0d0e0f1i0f0c0f0j0n0u0b0m0i0o0d0n0i0p0l0u0h0u0e0e0f0k0o0q0h0l0e0k0n0c0d0k0j0o1j0m0c0n0e0a0k0m0l0h0h0s0s090i0e0l0k0t0i0f0q0s0t0c0p0p0i0o0e0k080h0o0d0c0o0d0f0l080f0j0b0h0s1u0o0d0b0l0l0i0k0f0q0c1b0h0a0f0d0f090b090m0j0m0i0c0k0i0e0d0l0l0i1c0s0e0k0k0h0m0l0h0k0f0f090j0n0m0j0h0l0j0a0d0f0f0m0m0j0m0f0m0s0l090o080o0l0u0o1a0d0p0u0e0b0p0i0p0t0e0e0f0i0d0m0s0i0e0e0p0q1c0k0u0d1a0l0k1q0j0o0u0m0k0u0l0q0a0l080c0l0n0h080h0h0n0n0f0h0n1a0l0u0q0o0k0m0j0d0k0d0l0i0l0q0f0b0d0e0c0o0m0a0d090a0d0j0e0p0m0j0n0f0j0q0j0k0n0m0u0k0j0k0l0m0n0k0l0k0m0c0b0f0u0f0m0e0e0k170c0d0e0u0a0m0h0n0k0j0u0o0d0a0p0d1k0e0l0f0l1j0m0m0h0l0n0m0h0k0h0b0c0h080f0k0h0t070e0i0k0o0n0j0t0d0d0o0u0q0b0i0o0j0n0i0j0';
+function dailyInfo(d){const i=Math.round((new Date((d/10000|0),((d/100|0)%100)-1,d%100)-new Date(...DAILY0))/864e5);
+  return i>=0&&2*i+1<DAILY.length?{par:parseInt(DAILY[2*i],36)||0,salt:+DAILY[2*i+1]||0}:{par:0,salt:0}}
+function dailyLevel(d,salt=dailyInfo(d).salt){const L=genLv((Math.imul(d,0x2C1B3C6D)^Math.imul(salt,0x85EBCA6B))>>>0,16,true);L.name='Уровень дня';return L}
 function openDaily(){
-  hideScreens();const d=dayKey();
-  loadSpecial({kind:'daily',day:d,L:dailyLevel(d),title:'☀ Уровень дня · '+dayLabel(d),seed:d%997,coinKey:'d'+d});
+  hideScreens();const d=dayKey(),inf=dailyInfo(d);
+  loadSpecial({kind:'daily',day:d,L:dailyLevel(d),title:'☀ Уровень дня · '+dayLabel(d),seed:d%997,coinKey:'d'+d,par:inf.par,noLimit:!inf.par});
 }
 function dailySub(){const D=prog.daily,d=dayKey();
   return D.d===d&&D.done?'пройден · рекорд '+D.best+(D.streak>1?' · серия '+D.streak:''):D.streak>0&&D.last===prevDay(d)?'серия '+D.streak+' — не прерви!':'новый каждый день'}
@@ -853,7 +856,7 @@ function openMenu(){
 $('menu').onclick=()=>{thinking=null;if(!$('ov').hidden)return;anyScreen()?hideScreens():openMain()};
 // системная «Назад» в Android: закрыть меню, если открыто (true — обработано)
 window.__back=()=>{if(!$('codeOv').hidden){openMine();return true}if(!$('myOv').hidden){openMain();return true}if(ed&&!anyScreen()){edDone(false);return true}if(!$('lvOv').hidden||!$('brOv').hidden||!$('shop').hidden||!$('set').hidden){openMain();return true}if(!$('mm').hidden)return false;if(!$('ov').hidden){if(bridge&&preTest)retryTest();return true}openMain();return true};
-$('inf').onclick=()=>{if(prog.best<UNLOCK_INF||!$('ov').hidden)return;prog.inf=!prog.inf;saveProg();limit=prog.inf?Infinity:endless?E_START+E_BONUS*flags:limitFor(par);updCnt();
+$('inf').onclick=()=>{if(prog.best<UNLOCK_INF||!$('ov').hidden)return;prog.inf=!prog.inf;saveProg();limit=prog.inf||(special&&special.noLimit)?Infinity:endless?E_START+E_BONUS*flags:limitFor(par);updCnt();
   toast={t:prog.inf?'Режим ∞: шариков сколько угодно, звёзды не начисляются':'Обычный режим: лимит '+limit+' шариков',life:150,bad:!prog.inf&&ballsUsed()>=limit}};
 // ---- редактор уровней: земля, острова, шипы, скалы, монетка, старт; уровень сохраняется в «Мои уровни» и делится кодом
 const ED_TOOLS=[['ground','Земля'],['isl','Остров'],['spk','Шипы'],['rock','Скала'],['coin','Монетка'],['start','Старт'],['erase','Ластик'],['pan','Сдвиг']];

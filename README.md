@@ -33,7 +33,7 @@ KEYSTORE_PASSWORD=… python3 android/build_apk.py --version-name 0.20 --version
 - `node tools/view.js index.html out.png 13,15` и `node tools/shots.js index.html dir 844x390` — снимки уровней и экранов.
 - `node tools/ui.js index.html` — сценарий через настоящие касания: меню, уровень, отмена, магазин, настройки, мост, перезапуск.
 - `node tools/bridge_check.js index.html [мосты] 2` — типовые фермы на каждом мосту + проверка тележкой; шарики лучшей фермы ×1.2 → норма моста.
-- `node tools/daily_check.js index.html 365 3 out.json --reroll` — уровни дня на год вперёд; где бот не уложился в 40 шариков — другая «соль» (`DAILY_SALT`).
+- `node tools/daily_check.js index.html 365 3 out.json --reroll` — уровни дня на год вперёд; где бот не уложился в 40 шариков — другая «соль»; итог — строка `DAILY` (норма + соль на каждый день с 3.10.2026 по 2.10.2027).
 - `node tools/endless_check.js index.html 40` — участки бесконечного пути с новинками как мини-уровни.
 
 ## Уровни с 13-го
