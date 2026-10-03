@@ -3,9 +3,9 @@ const path = require('path');
 const { chromium } = require(process.env.PW || 'playwright');
 (async () => {
   const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
-  const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message));
+  const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error' && !/ERR_CERT|net::/.test(m.text())) errs.push('console: ' + m.text()) });
   await p.goto('file://' + path.resolve(process.argv[2])); await p.waitForTimeout(300);
-  const log = (...a) => console.log(...a); const ev = (f, a) => p.evaluate(f, a);
+  let fails = 0; const log = (...a) => { if (a.includes(false)) fails++; console.log(...a) }; const ev = (f, a) => p.evaluate(f, a);
   const tap = async sel => { await p.tap(sel); await p.waitForTimeout(150) };
   // касание в мировых координатах: палец ставится ниже точки на TOUCH_UP (призрак выше пальца)
   const touchAt = async (x, y) => {
@@ -36,5 +36,5 @@ const { chromium } = require(process.env.PW || 'playwright');
   // перезапуск: прогресс и режим сохраняются
   await p.reload(); await p.waitForTimeout(300);
   log('после перезапуска — мост, скин:', await ev(() => bridge && prog.skin === 'wood'));
-  log('ошибки:', errs.length ? errs : 'нет'); await b.close();
+  console.log('ошибки:', errs.length ? errs : 'нет', fails ? '· проваленных проверок: ' + fails : ''); if (errs.length || fails) process.exitCode = 1; await b.close();
 })();

@@ -11,3 +11,5 @@ build/
 *.idsig
 __pycache__/
 *.pyc
+.env
+*.env

@@ -5,7 +5,8 @@
 
 Пароль — в переменной окружения KEYSTORE_PASSWORD (и KEY_PASSWORD, если у ключа свой).
 Без --keystore собирается только неподписанный build/…-unsigned.apk.
-Подпись: схема v2 (minSdk 24 — её проверяют все поддерживаемые Android), apksig из Maven Central, скачивается в build/ и сверяется по SHA-1.
+Подпись: схема v2 (minSdk 24 — её проверяют все поддерживаемые Android), apksig из Maven Central, скачивается в build/ и сверяется по SHA-256.
+После подписи версия дописывается в android/released.txt — versionCode следующей сборки должен быть больше.
 """
 import argparse, hashlib, os, re, struct, subprocess, sys, urllib.request, zipfile
 
@@ -14,7 +15,9 @@ AND = os.path.join(ROOT, 'android')
 TPL = os.path.join(AND, 'template')
 BUILD = os.path.join(ROOT, 'build')
 APKSIG = ('https://repo1.maven.org/maven2/com/android/tools/build/apksig/2.3.0/apksig-2.3.0.jar',
-          'apksig-2.3.0.jar')
+          'apksig-2.3.0.jar',
+          '9637078c0016244e4be0941836295365a7e2e5b164c59cb7885783c40460bfee')  # SHA-256 (совпадает с SHA-1 из Maven Central)
+RELEASED = os.path.join(AND, 'released.txt')  # выпущенные версии: «versionCode versionName» — новый код должен быть больше всех
 MIN_SDK = 24
 # порядок и сжатие — как в APK 0.18: картинки, шрифты и resources.arsc без сжатия (arsc обязан быть несжатым и выровненным)
 ORDER = ['AndroidManifest.xml', 'classes.dex', 'res/', 'resources.arsc', 'assets/fonts/', 'assets/index.html']
@@ -27,7 +30,7 @@ def game_html():
     fonts = open(os.path.join(AND, 'fonts.css'), encoding='utf-8').read().strip()
     migrate = open(os.path.join(AND, 'migrate.js'), encoding='utf-8').read().strip()
     out, n = re.subn(r'<link rel="preconnect" href="https://fonts\.googleapis\.com">\n<link rel="stylesheet" href="https://fonts\.googleapis\.com/[^"]*">\n<style>\n',
-                     '<style>\n' + fonts + '\n', src)
+                     lambda m: '<style>\n' + fonts + '\n', src)
     if n != 1: sys.exit('не нашёл подключение Google Fonts в index.html')
     out, n = re.subn(r'(\nfunction saveProg\(\)\{[^\n]*\n)', lambda m: m.group(1) + migrate + '\n', out)
     if n != 1: sys.exit('не нашёл saveProg() в index.html')
@@ -134,15 +137,32 @@ def template_entries():
 
 
 def apksig_jar():
-    url, name = APKSIG
+    url, name, sha256 = APKSIG
     jar = os.path.join(BUILD, name)
     if not os.path.exists(jar):
         os.makedirs(BUILD, exist_ok=True)
-        get = lambda u: urllib.request.urlopen(urllib.request.Request(u, headers={'User-Agent': 'curl/8'}), timeout=60).read()
-        data, sha1 = get(url), get(url + '.sha1').decode().split()[0]
-        if hashlib.sha1(data).hexdigest() != sha1: sys.exit('apksig: не сошлась SHA-1')
+        data = urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'curl/8'}), timeout=60).read()
+        if hashlib.sha256(data).hexdigest() != sha256: sys.exit('apksig: не сошлась SHA-256 скачанного файла')
         open(jar, 'wb').write(data)
+    # проверяем и закешированный файл: ему передаётся пароль от ключа
+    if hashlib.sha256(open(jar, 'rb').read()).hexdigest() != sha256: sys.exit('apksig: %s изменён — удали его, скачается заново' % os.path.relpath(jar, ROOT))
     return jar
+
+
+def released_codes():
+    """versionCode уже выпущенных версий: android/released.txt и APK в build/."""
+    codes = {}
+    if os.path.exists(RELEASED):
+        for line in open(RELEASED, encoding='utf-8'):
+            p = line.split()
+            if p and p[0].isdigit(): codes[int(p[0])] = 'android/released.txt: ' + line.strip()
+    for f in os.listdir(BUILD) if os.path.isdir(BUILD) else []:
+        if f.endswith('.apk') and not f.endswith('-unsigned.apk'):
+            try:
+                with zipfile.ZipFile(os.path.join(BUILD, f)) as z: _, oc, on = patch_manifest(z.read('AndroidManifest.xml'), 1, 'x')
+                codes[oc] = 'build/' + f
+            except Exception: pass
+    return codes
 
 
 def main():
@@ -160,6 +180,9 @@ def main():
         if n == 'AndroidManifest.xml':
             data, oc, on = patch_manifest(data, a.version_code, a.version_name)
             if a.version_code <= oc: sys.exit('versionCode %d должен быть больше, чем в шаблоне (%d)' % (a.version_code, oc))
+            rel = released_codes()
+            if rel and a.version_code <= max(rel):
+                sys.exit('versionCode %d должен быть больше уже выпущенного %d (%s), иначе телефон не поставит обновление' % (a.version_code, max(rel), rel[max(rel)]))
             print('манифест: versionCode %d -> %d, versionName %s -> %s' % (oc, a.version_code, on, a.version_name))
         entries.append((n, data))
     entries.append(('assets/index.html', game_html()))
@@ -172,6 +195,8 @@ def main():
     subprocess.run(['java', '--add-exports', 'java.base/sun.security.x509=ALL-UNNAMED', '-cp', apksig_jar(), os.path.join(AND, 'Sign.java'), 'sign',
                     unsigned, out, a.keystore, a.alias, str(MIN_SDK)], check=True)
     print('подписан', os.path.relpath(out, ROOT))
+    with open(RELEASED, 'a', encoding='utf-8') as f: f.write('%d %s\n' % (a.version_code, a.version_name))
+    print('версия записана в', os.path.relpath(RELEASED, ROOT))
 
 
 if __name__ == '__main__':

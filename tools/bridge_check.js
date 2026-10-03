@@ -46,7 +46,7 @@ function attempt(bi, P) { // выполняется на странице игр
   const ids = list ? list.split(',').map(x => +x - 1) : Array.from({ length: nB }, (_, i) => i);
   let next = 0; const out = {};
   async function worker() {
-    const p = await b.newPage(); p.on('pageerror', e => console.error('pageerror', e.message)); await p.goto('file://' + path.resolve(file));
+    const p = await b.newPage(); p.on('pageerror', e => { console.error('pageerror', e.message); process.exitCode = 1 }); p.on('console', m => { if (m.type() === 'error' && !/ERR_CERT|net::/.test(m.text())) { console.error('console', m.text()); process.exitCode = 1 } }); await p.goto('file://' + path.resolve(file));
     while (next < ids.length) {
       const bi = ids[next++]; let best = null, fails = {};
       for (const P of PATTERNS) {
@@ -54,7 +54,7 @@ function attempt(bi, P) { // выполняется на странице игр
         if (r.ok && (!best || r.balls < best.balls)) best = { ...r, P }; else if (!r.ok) fails[r.why] = (fails[r.why] || 0) + 1;
       }
       const info = await p.evaluate(bi => ({ name: BLEVELS[bi].name, par: BLEVELS[bi].par }), bi);
-      out[bi] = best; console.log(`мост ${bi + 1} «${info.name}» (норма ${info.par}):`, best ? `OK ${best.balls} шариков · шаг ${best.P.s}, ${best.P.h < 0 ? 'сверху' : 'снизу'} ${Math.abs(best.P.h)}, сталь ${best.P.steel}, ${best.P.order}` : 'НЕ ПРОШЁЛ', best ? '' : JSON.stringify(fails));
+      out[bi] = best; if (!best) process.exitCode = 1; console.log(`мост ${bi + 1} «${info.name}» (норма ${info.par}):`, best ? `OK ${best.balls} шариков · шаг ${best.P.s}, ${best.P.h < 0 ? 'сверху' : 'снизу'} ${Math.abs(best.P.h)}, сталь ${best.P.steel}, ${best.P.order}` : 'НЕ ПРОШЁЛ', best ? '' : JSON.stringify(fails));
     }
   }
   await Promise.all(Array.from({ length: +W }, worker)); await b.close();

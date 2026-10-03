@@ -8,7 +8,7 @@ const [file, out, ...sizes] = process.argv.slice(2);
   for (const sz of (sizes.length ? sizes : ['844x390'])) {
     const [w, h] = sz.split('x').map(Number);
     const p = await b.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
-    const errs = []; p.on('pageerror', e => errs.push(e.message));
+    const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error' && !/ERR_CERT|net::/.test(m.text())) errs.push('console: ' + m.text()) });
     await p.goto('file://' + path.resolve(file)); await p.waitForTimeout(300);
     const snap = async (name, fn) => { if (fn) await p.evaluate(fn); await p.waitForTimeout(250); await p.screenshot({ path: `${out}/${sz}-${name}.png` }) };
     await p.evaluate(() => { prog.best = 60; prog.coins = 450; prog.stars = { 0: 3, 1: 2, 2: 1 }; prog.bridge.best = 4; prog.bridge.stars = { 0: 3, 1: 1 }; saveProg(); openMain() });

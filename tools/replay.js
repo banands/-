@@ -8,8 +8,8 @@ const [file, list] = process.argv.slice(2);
   for (const lv of list.split(',').map(Number)) {
     const p1 = await b.newPage(); await p1.goto('file://' + path.resolve(file)); await p1.addScriptTag({ path: path.join(__dirname, 'bot.js') });
     const r = await p1.evaluate(i => solveLevel(i), lv - 1); await p1.close();
-    const moves = r.log.filter(m => Array.isArray(m));
-    const p = await b.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message)); await p.goto('file://' + path.resolve(file));
+    const moves = []; for (const m of r.log) { if (Array.isArray(m)) moves.push(m); else if (m && m.back) moves.pop() } // откат бота отменяет предыдущий ход
+    const p = await b.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error' && !/ERR_CERT|net::/.test(m.text())) errs.push('console: ' + m.text()) }); await p.goto('file://' + path.resolve(file));
     const out = await p.evaluate(([i, moves]) => {
       hideScreens(); prog.bonus = {}; prog.seen = {}; const c0 = prog.coins; let msg = ''; show = (t) => { msg = t }; const wm = winMsg;
       load(i); prog.inf = true; limit = Infinity; const ev = { flags: 0, pops: 0 };
@@ -19,7 +19,7 @@ const [file, list] = process.argv.slice(2);
       run(200);
       return { won, lost, msg, balls: nodes.length, coinTaken: !!prog.bonus[i], coinsGained: prog.coins - c0, hadCoin: !!L.coin, ...ev, name: L.name };
     }, [lv - 1, moves]);
-    console.log('ур.' + lv, r.ok ? 'бот OK ' + r.balls : 'бот FAIL', JSON.stringify(out), errs.join(';'));
+    console.log('ур.' + lv, r.ok ? 'бот OK ' + r.balls : 'бот FAIL', JSON.stringify(out), errs.join(';')); if (!out.won || out.err || errs.length) process.exitCode = 1;
     await p.close();
   }
   await b.close();

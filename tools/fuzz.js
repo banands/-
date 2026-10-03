@@ -52,5 +52,5 @@ const file = path.resolve(process.argv[2] || 'index.html'), ROUNDS = +(process.a
     }
     console.error = oldErr; return bad;
   }, ROUNDS);
-  console.log(JSON.stringify([...errs, ...res], null, 1)); await b.close();
+  const all = [...errs, ...res]; console.log(JSON.stringify(all, null, 1)); if (all.length) process.exitCode = 1; await b.close();
 })();

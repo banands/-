@@ -27,7 +27,7 @@
   #mat.steel{background:#3b4552;color:#fff}
   #mat.steel .sw{background:linear-gradient(#c9d1db,#6b7684);box-shadow:0 0 0 1.5px #fff}
   button:focus-visible{outline:3px solid var(--flag);outline-offset:2px}
-  .overlay{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+  .overlay{position:absolute;inset:0;display:grid;grid-template-columns:minmax(0,1fr);place-items:center;pointer-events:none}
   .overlay[hidden]{display:none}
   .card{box-sizing:border-box;pointer-events:auto;background:#fff;border-radius:18px;padding:22px 28px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.18);max-width:min(340px,calc(100% - 32px))}
   .card h2{margin:0 0 6px;font-size:24px;text-wrap:balance}
@@ -43,7 +43,7 @@
   .skins{display:flex;gap:8px;justify-content:center;margin:0 0 12px}
   .skins button{background:#eee;color:var(--ink);font-size:13px;padding:6px 12px}
   .skins button.on{background:var(--ink);color:#fff}
-  .screen{background:rgba(12,24,36,.45);pointer-events:auto;overflow:auto;padding-block:16px;box-sizing:border-box}
+  .screen{z-index:1;background:rgba(12,24,36,.45);pointer-events:auto;overflow:auto;padding-block:16px;box-sizing:border-box}
   .card.mm{display:flex;flex-direction:column;gap:10px;min-width:min(300px,calc(100% - 32px))}
   .card.mm h1{margin:0;font-size:30px;line-height:1.1;text-wrap:balance}
   .card.mm button{width:100%;border-radius:14px;padding:11px 14px}
@@ -58,6 +58,7 @@
   .myrow{display:flex;align-items:center;gap:6px;background:#f3f5f7;border-radius:12px;padding:6px 8px}
   .myrow .mytxt{flex:1;min-width:0;display:flex;flex-direction:column}.myrow .mytxt b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .myrow small{font-size:12px;opacity:.6}.myrow button{min-height:40px;padding:6px 12px;border-radius:10px}
+  #ovP.sel{-webkit-user-select:text;user-select:text}
   .card textarea{width:100%;box-sizing:border-box;margin:0 0 8px;padding:8px 10px;border:1px solid #cdd3da;border-radius:10px;font:13px/1.35 ui-monospace,monospace;resize:none;-webkit-user-select:text;user-select:text;word-break:break-all}
   .edbar{position:absolute;top:calc(8px + env(safe-area-inset-top,0px));left:calc(10px + env(safe-area-inset-left,0px));right:calc(10px + env(safe-area-inset-right,0px));display:flex;flex-wrap:wrap;gap:6px;justify-content:space-between;pointer-events:none}
   .edbar>div{display:flex;flex-wrap:wrap;gap:5px;pointer-events:auto}
@@ -102,7 +103,7 @@
   .shop{padding-bottom:18px;-webkit-mask-image:linear-gradient(#000 calc(100% - 20px),transparent);mask-image:linear-gradient(#000 calc(100% - 20px),transparent);scrollbar-width:thin}
   /* --hudB — низ HUD в px (ставит ResizeObserver в fixProg); запас 64px, если его ещё нет */
   body.bridge #ov{place-items:start center;padding-top:calc(max(var(--hudB,54px),54px) + 10px);box-sizing:border-box;overflow:auto}
-  body.bridge #ov .card{max-height:calc(100% - max(var(--hudB,54px),54px) - 20px);overflow:auto}
+  body.bridge #ov .card{max-height:calc(100% - 10px);overflow:auto}
   @media (max-width:480px),(max-height:440px){
     .hud #undo,.hud #reset,.hud #mat{min-width:44px;padding-inline:0;font-size:18px;line-height:1}
     .hud #undo .lbl,.hud #reset .lbl,.hud #mat .lbl{display:none}
@@ -121,6 +122,7 @@
     .legend{bottom:auto;top:calc(max(var(--hudB,54px),54px) + 6px);font-size:11px;padding:4px 10px;opacity:.75}
     .legend i{width:34px}
     .screen{padding-block:8px}
+    #brOv .hint{display:none}
     .card.mm{display:grid;grid-template-columns:1fr 1fr;gap:6px}
     .card.mm>*{grid-column:1/-1}
     .card.mm>#mmLevels,.card.mm>#mmBridges{grid-column:auto}
@@ -179,7 +181,7 @@
     <label class="tg"><input type="checkbox" id="stLegend"><span>Подсказка про нагрузку</span></label>
     <label class="tg"><input type="checkbox" id="stZone"><span>Граница зоны досягаемости</span></label>
     <button id="stReset" type="button" class="danger">Сбросить прогресс</button>
-    <button id="setBack" class="ghost" type="button">← Назад</button><p class="ver">версия 0.20</p></div></div>
+    <button id="setBack" class="ghost" type="button">← Назад</button><p class="ver">версия 0.21</p></div></div>
   <div class="overlay" id="ov" hidden><div class="card"><h2 id="ovT"></h2><p id="ovP"></p><div class="row"><button id="ovB" type="button"></button><button id="ovB2" class="ghost" type="button" hidden></button><button id="ovB3" class="ghost" type="button" hidden></button></div></div></div>
 </div>
 
@@ -291,10 +293,10 @@ function egFill(){ // держим впереди минимум 6 непрой�
   maxX=eg.x+200;
 }
 function loadEndless(){
-  leaveBridge();special=null;endless=true;won=lost=false;clearTimeout(t0);hintP=null;setMat('w');
+  leaveBridge();special=null;endless=true;won=lost=false;clearTimeout(t0);hintP=null;thinking=null;ghost=null;pid=null;setMat('w');
   let a=(Date.now()^0x5bd1e995)>>>0;const rnd=()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296};
   const y0=520;originRect={x:-600,y:y0,w:1000,h:900};terrain=[originRect];goalR=null;coin=null;pops=[];spiky=false;hintK=null;
-  eg={rnd,x:400,y:y0,prev:'',n:0};cps=[];cp=0;cpT=0;cpJ=-1;cpSnap=null;toast=null;passed=[];flags=0;used=1;
+  eg={rnd,x:400,y:y0,prev:'',n:0,inf:!!prog.inf};cps=[];cp=0;cpT=0;cpJ=-1;cpSnap=null;toast=null;passed=[];flags=0;used=1;
   L={name:'Бесконечный путь',p:[],start:220,endless:true};
   egFill();goalX=1e9;goalTop=0;
   themeSeed=(a>>>3)%97;TH=THEMES[themeIdx(themeSeed)];makeSky();document.body.style.background=TH.sky[0];
@@ -319,7 +321,7 @@ function endlessFlag(P,reached){ // флажок взят: чистим всё, 
   endlessCenter(P);
   const tier=Math.floor(flags/5),old=Math.floor((flags-reached)/5);
   if(tier!==old){TH=THEMES[themeIdx(themeSeed+tier)];makeSky();document.body.style.background=TH.sky[0]}
-  const rec=prog.endless||0;if(!prog.inf&&flags>rec){prog.endless=flags;saveProg()}
+  const rec=prog.endless||0;if(prog.inf)eg.inf=true;if(!eg.inf&&flags>rec){prog.endless=flags;saveProg()} // с ∞ в забеге — без рекорда
   const plus=prog.inf?'':' +'+E_BONUS*reached+' шариков'; // в режиме ∞ шарики не прибавляются; за несколько флажков разом — за каждый
   toast={t:tier!==old?'Флажок '+flags+' · новая локация!'+plus:'Флажок '+flags+' · старая часть убрана'+(plus&&','+plus),life:150};
 }
@@ -372,7 +374,7 @@ function bAnchors(B){ // болты: левый край, правый край,
 function leaveBridge(){document.body.classList.toggle('bridge',false);bridge=false;cart=null;testing=false;preTest=null;nPin=0;$('test').hidden=true;$('hintB').hidden=false;if(prog.mode==='br'){prog.mode='lv';saveProg()}}
 function loadBridge(i){
   i=Math.max(0,Math.min(i|0,BLEVELS.length-1,prog.bridge.best));
-  clearTimeout(t0);endless=false;special=null;hintP=null;setMat('w');originRect=null;passed=[];bridge=true;bIdx=i;BL=BLEVELS[i];document.body.classList.toggle('bridge',true);
+  clearTimeout(t0);endless=false;special=null;hintP=null;thinking=null;ghost=null;pid=null;setMat('w');originRect=null;passed=[];bridge=true;bIdx=i;BL=BLEVELS[i];document.body.classList.toggle('bridge',true);
   prog.bridge.cur=i;prog.mode='br';saveProg();
   themeSeed=300+i;par=BL.par;limit=prog.inf?Infinity:limitFor(par);TH=THEMES[themeIdx(themeSeed)];makeSky();document.body.style.background=TH.sky[0];
   terrain=BL.p.map(([x0,x1,y])=>({x:x0,y,w:x1-x0,h:900}));goalR=terrain[terrain.length-1];coin=null;pops=[];hintK=null;
@@ -526,7 +528,7 @@ function parFor(i){const v=PAR[i];return v?Math.min(v,30):parEst(i<LEVELS.length
 function parEst(L){const q=L.p;
   // оценка по длине и подъёму (подобрана по результатам бота на уровнях 13–150): шипы на краю — тянуться дальше, скала — мост пониже, остров — лишняя опора
   const n=k=>q.filter(e=>e[3]&&e[3][k]).length;
-  return Math.min(30,Math.round(.0167*(q[q.length-1][0]-L.start)+.0082*Math.max(0,q[0][2]-q[q.length-1][2])+2*n('spk')+.7*(L.o||[]).length-.5*n('h')+2.2))}
+  return Math.max(3,Math.min(30,Math.round(.0167*Math.abs(q[q.length-1][0]-L.start)+.0082*Math.max(0,q[0][2]-q[q.length-1][2])+2*n('spk')+.7*(L.o||[]).length-.5*n('h')+2.2)))}
 function limitFor(par){return par+Math.max(4,Math.ceil(par*.6))}
 function starsFor(k,par){return k<=par?3:k<=par+Math.ceil(par*.3)?2:1}
 const cv=document.getElementById('c'),ctx=cv.getContext('2d');
@@ -579,11 +581,11 @@ function loadSpecial(sp){
 function restart(){clearTimeout(t0);thinking=null;bridge?loadBridge(bIdx):endless?loadEndless():special?loadSpecial(special):load(lvlIdx)}
 // общая часть загрузки уровня из описания; coinKey — ключ бонусной монетки в прогрессе (null — монетка без награды)
 function setupLevel(Lv,th,ck){
-  endless=false;originRect=null;passed=[];L=Lv;coinKey=ck;hintP=null;setMat('w');
+  endless=false;originRect=null;passed=[];L=Lv;coinKey=ck;hintP=null;thinking=null;ghost=null;pid=null;setMat('w');
   limit=prog.inf?Infinity:limitFor(par);TH=THEMES[th];makeSky();document.body.style.background=TH.sky[0];
   terrain=L.p.map(mkRect);
   const g=terrain[terrain.length-1]; goalR=g; goalX=g.x; goalTop=g.y;
-  cps=terrain.slice(1,-1).filter(r=>r.k!=='pit');cp=0;cpT=0;cpJ=-1;cpSnap=null;toast=null;
+  cps=terrain.slice(1,-1).filter(r=>r.k!=='pit'&&r.x>L.start);cp=0;cpT=0;cpJ=-1;cpSnap=null;toast=null;
   if(L.o)for(const q of L.o)terrain.push(mkRock(q));
   coin=L.coin&&!(ck!=null&&prog.bonus[ck])?{x:L.coin[0],y:L.coin[1]}:null;pops=[];spiky=terrain.some(r=>r.spk);
   hintK=levelHint();
@@ -608,8 +610,8 @@ function addNode(x,y){nodes.push({x,y,px:x,py:y,g:false,on:null});return nodes.l
 function snap(){return{n:nodes.map(o=>({...o})),b:bars.map(o=>({...o})),u:used}}
 function addBar(a,b){bars.push({a,b,len:Math.hypot(nodes[a].x-nodes[b].x,nodes[a].y-nodes[b].y),s:0})}
 function updCnt(){$('inf').hidden=prog.best<UNLOCK_INF;$('inf').classList.toggle('on',!!prog.inf);
-  if(endless){$('cnt').textContent='● '+used+'/'+(prog.inf?'∞':limit)+' · ⚑'+flags+' · рекорд '+(prog.endless||0);return}
-  $('cnt').textContent='● '+ballsUsed()+'/'+(prog.inf?'∞':limit)+(prog.inf?'':' · ★'+par)+(cps.length?' · ⚑'+cp+'/'+cps.length:'')}
+  if(endless){$('cnt').textContent='● '+used+'/'+(prog.inf?'∞':limit)+' · ⚑'+flags+(eg.inf?' · без рекорда (был ∞)':' · рекорд '+(prog.endless||0));return}
+  $('cnt').textContent='● '+ballsUsed()+'/'+(limit===Infinity?'∞':limit)+(prog.inf?'':' · ★'+par)+(cps.length?' · ⚑'+cp+'/'+cps.length:'')}
 function restoreCp(){used=cpSnap.u??used;nodes=cpSnap.n.map(o=>({...o,px:o.x,py:o.y}));bars=cpSnap.b.map(o=>({...o,o:0}));hist=[];winT=0;cpT=0;debris=[];lost=false;$('ov').hidden=true;updCnt()}
 
 function collide(n){
@@ -724,7 +726,7 @@ function winMsg(){
   else show('Мост готов! '+'★'.repeat(st)+'☆'.repeat(3-st),'Шариков: '+k+(st<3?'. На три звезды нужно не больше '+par+'.':'. В норме, отлично!')+cTxt,'Дальше →',()=>load(lvlIdx+1));
   clearTimeout(t0);if(!unlocked)t0=setTimeout(()=>{if(won)load(lvlIdx+1)},1800);
 }
-function show(t,p,b,fn,b2,fn2,b3,fn3){$('ovT').textContent=t;$('ovP').textContent=p;$('ovB').textContent=b;$('ovB').onclick=()=>{clearTimeout(t0);fn()};
+function show(t,p,b,fn,b2,fn2,b3,fn3){$('ovT').textContent=t;$('ovP').textContent=p;$('ovP').classList.remove('sel');$('ovB').textContent=b;$('ovB').onclick=()=>{clearTimeout(t0);fn()};
   for(const[B,tx,f]of[[$('ovB2'),b2,fn2],[$('ovB3'),b3,fn3]]){B.hidden=!tx;if(tx){B.textContent=tx;B.onclick=()=>{clearTimeout(t0);f()}}}$('ov').hidden=false}
 // ---- уровень дня: один на всех по дате, рекорд по шарикам, серия дней подряд
 const plural=(n,a,b,c)=>{const m=n%100,d=n%10;return m>10&&m<20?c:d===1?a:d>1&&d<5?b:c};
@@ -744,11 +746,10 @@ function openDaily(){
 function dailySub(){const D=prog.daily,d=dayKey();
   return D.d===d&&D.done?'пройден · рекорд '+D.best+(D.streak>1?' · серия '+D.streak:''):D.streak>0&&D.last===prevDay(d)?'серия '+D.streak+' — не прерви!':'новый каждый день'}
 function prevDay(d){const t=new Date((d/10000|0),((d/100|0)%100)-1,d%100);t.setDate(t.getDate()-1);return dayKey(t)}
-function copyText(t){ // буфер обмена: в WebView без https clipboard может не работать — запасной путь через textarea
-  const ok=()=>{toast={t:'Скопировано: '+t,life:150}};
-  try{if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(t).then(ok,()=>fallback());return}}catch(_){}
-  fallback();function fallback(){const a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0';document.body.appendChild(a);a.select();
-    let r=false;try{r=document.execCommand('copy')}catch(_){}a.remove();toast=r?{t:'Скопировано: '+t,life:150}:{t:t,life:240}}}
+function copyText(t,done){ // буфер обмена: в WebView без https clipboard может не работать — запасной путь через textarea; done(true|false)
+  try{if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(t).then(()=>done(true),()=>fallback());return}}catch(_){}
+  fallback();function fallback(){const f=document.activeElement,a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0';document.body.appendChild(a);a.select();
+    let r=false;try{r=document.execCommand('copy')}catch(_){}a.remove();if(f&&f.focus)f.focus({preventScroll:true});done(r)}}
 function specialWin(){
   const sp=special,k=ballsUsed(),st=starsFor(k,par),inf=!!prog.inf,stars=inf?'':' '+'★'.repeat(st)+'☆'.repeat(3-st);
   if(sp.kind==='daily'){
@@ -758,11 +759,11 @@ function specialWin(){
     prog.coins+=gain;saveProg();updCnt();
     const res='Мостостроитель · уровень дня '+dayLabel(d)+': '+k+' '+plural(k,'шарик','шарика','шариков')+stars;
     show('Уровень дня пройден!'+stars,'Шариков: '+k+(inf?'. Режим ∞ — без рекорда.':rec&&gain===0?' — новый рекорд дня!':'. Рекорд дня: '+D.best+'.')+(gain?' +'+gain+' монет, серия: '+D.streak+'.':''),
-      'В меню',openMain,'Ещё раз',restart,'Скопировать',()=>copyText(res));
+      'В меню',openMain,'Ещё раз',restart,'Скопировать',()=>copyText(res,ok=>{if(ok){$('ovB3').textContent='Скопировано ✓';sfx('click')}else{$('ovP').textContent=res;$('ovP').classList.add('sel');$('ovB3').textContent='Выдели текст выше'}}));
     return;
   }
   const C=prog.custom[sp.idx];if(C&&!inf&&(!C.b||k<C.b)){C.b=k;saveProg()}
-  show('Уровень пройден!'+stars,'Шариков: '+k+(C&&C.b?'. Лучший результат: '+C.b+'.':'.'),sp.edit?'К редактору':'К моим уровням',sp.edit?()=>openEditor(sp.idx):openMine,'Ещё раз',restart);
+  show('Уровень пройден!'+stars,'Шариков: '+k+(C&&C.b?'. Лучший результат: '+C.b+'.':'.'),sp.edit&&C?'К редактору':'К моим уровням',sp.edit&&C?()=>openEditor(sp.idx):openMine,'Ещё раз',restart);
 }
 
 // ---- ввод
@@ -789,7 +790,7 @@ function resize(){
   cw=w;ch=h;cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);needDraw=true;
   ctx.setTransform(cv.width/w,0,0,cv.height/h,0,0);
   makeSky();
-  cam();
+  cam();if(ed)edTop();
 }
 if(window.ResizeObserver)new ResizeObserver(resize).observe($('wrap'));else addEventListener('resize',resize);
 (function watchDpr(){const m=matchMedia(`(resolution: ${devicePixelRatio||1}dppx)`);m.addEventListener?.('change',()=>{resize();watchDpr()},{once:true})})();
@@ -856,8 +857,8 @@ function openMenu(){
 $('menu').onclick=()=>{thinking=null;if(!$('ov').hidden)return;anyScreen()?hideScreens():openMain()};
 // системная «Назад» в Android: закрыть меню, если открыто (true — обработано)
 window.__back=()=>{if(!$('codeOv').hidden){openMine();return true}if(!$('myOv').hidden){openMain();return true}if(ed&&!anyScreen()){edDone(false);return true}if(!$('lvOv').hidden||!$('brOv').hidden||!$('shop').hidden||!$('set').hidden){openMain();return true}if(!$('mm').hidden)return false;if(!$('ov').hidden){if(bridge&&preTest)retryTest();return true}openMain();return true};
-$('inf').onclick=()=>{if(prog.best<UNLOCK_INF||!$('ov').hidden)return;prog.inf=!prog.inf;saveProg();limit=prog.inf||(special&&special.noLimit)?Infinity:endless?E_START+E_BONUS*flags:limitFor(par);updCnt();
-  toast={t:prog.inf?'Режим ∞: шариков сколько угодно, звёзды не начисляются':'Обычный режим: лимит '+limit+' шариков',life:150,bad:!prog.inf&&ballsUsed()>=limit}};
+$('inf').onclick=()=>{if(prog.best<UNLOCK_INF||!$('ov').hidden)return;prog.inf=!prog.inf;saveProg();if(endless&&prog.inf)eg.inf=true;limit=prog.inf||(special&&special.noLimit)?Infinity:endless?E_START+E_BONUS*flags:limitFor(par);updCnt();
+  toast={t:prog.inf?'Режим ∞: шариков сколько угодно, звёзды не начисляются':'Обычный режим: '+(limit===Infinity?'без лимита':'лимит '+limit+' шариков'),life:150,bad:!prog.inf&&ballsUsed()>=limit}};
 // ---- редактор уровней: земля, острова, шипы, скалы, монетка, старт; уровень сохраняется в «Мои уровни» и делится кодом
 const ED_TOOLS=[['ground','Земля'],['isl','Остров'],['spk','Шипы'],['rock','Скала'],['coin','Монетка'],['start','Старт'],['erase','Ластик'],['pan','Сдвиг']];
 const ED_TIPS={ground:'Земля: проведи пальцем вбок — площадка от этой высоты до низа',isl:'Остров: проведи вбок на нужной высоте',spk:'Шипы: проведи по верху площадки',
@@ -896,16 +897,19 @@ function edShow(){ // описание из редактора — на поле
   const x=Lv.start,sr=terrain.find(r=>r.k!=='rock'&&r.k!=='pit'&&x>=r.x&&x<=r.x+r.w);
   nodes=sr?[{x,y:sr.y-R,px:x,py:sr.y-R,g:false,on:null}]:[];bars=[];debris=[];pops=[];hist=[];minX=-1e9;maxX=1e9}
 function openEditor(i){
-  const md=prog.mode;hideScreens();leaveBridge();prog.mode=md;special=null;endless=false;clearTimeout(t0);thinking=null; // режим (уровни/мосты) — вернётся после редактора
-  if(i<0){if(prog.custom.length>=50){toast={t:'Уже 50 уровней — удали лишние',life:150,bad:true};openMine();return}
-    prog.custom.push({n:'Мой уровень '+(prog.custom.length+1),c:encLevel({p:[[-600,300,480],[700,2300,420]],start:150}),b:0});saveProg();i=prog.custom.length-1}
+  if(i<0&&prog.custom.length>=ED_MAX){const b=$('myNew');b.textContent='Уже '+ED_MAX+' — удали лишние';sfx('no');setTimeout(()=>{b.textContent='+ Новый'},2500);return}
+  if(i>=0&&!prog.custom[i]){openMine();return}
+  const md=prog.mode;hideScreens();leaveBridge();prog.mode=md;saveProg();special=null;endless=false;clearTimeout(t0);thinking=null; // режим (уровни/мосты) — вернётся после редактора
+  if(i<0){prog.custom.push({n:'Мой уровень '+(prog.custom.length+1),c:encLevel({p:[[-600,300,480],[700,2300,420]],start:150}),b:0});saveProg();i=prog.custom.length-1}
   const E=decLevel(prog.custom[i].c)||{p:[[-600,300,480],[700,2300,420]],start:150};
   ed={idx:i,E,tool:'ground',hist:[],cam:-200,drag:null,top:60};TH=THEMES[0];themeSeed=0;makeSky();document.body.style.background=TH.sky[0];
   document.body.classList.add('editing');$('edBar').hidden=false;$('ov').hidden=true;edTool('ground');edShow();
-  requestAnimationFrame(()=>{if(ed)ed.top=$('edBar').getBoundingClientRect().bottom-cv.getBoundingClientRect().top})}
+  edTop()}
+function edTop(){requestAnimationFrame(()=>{if(ed)ed.top=$('edBar').getBoundingClientRect().bottom-cv.getBoundingClientRect().top})} // низ панели редактора (после поворота/смены размера — заново)
 function edTool(k){ed.tool=k;for(const b of $('edTools').children)b.classList.toggle('on',b.dataset.t===k);toast={t:ED_TIPS[k],life:200,ed:1}}
 function edCam(){const top=ed.top+6,VW=1300;sc=Math.max(1e-3,Math.min(cw/VW,(ch-top-6)/640));camX=ed.cam;ox=-camX*sc;oy=top+(ch-top-640*sc)/2+20*sc}
-function edPt(e){const p=toWorld(e);return{x:snap10(p.x),y:snap10(p.y)}}
+const ED_MAX=50,ED_X0=-700,ED_X1=6000;
+function edPt(e){const p=toWorld(e);return{x:clampV(snap10(p.x),ED_X0,ED_X1),y:clampV(snap10(p.y),-200,600)}}
 function edBlockAt(x,y,tol){let best=null,bd=1e9; // площадка, у верха которой (или внутри) точка
   for(const q of ed.E.p){if(x<q[0]-5||x>q[1]+5)continue;const h=q[3]&&q[3].h,d=Math.abs(y-q[2]),inside=y>=q[2]&&(!h||y<=q[2]+h);if((d<=tol||inside)&&d<bd){best=q;bd=d}}return best}
 function edDown(e){if(e.button!==0||!e.isPrimary)return;pid=e.pointerId;try{cv.setPointerCapture(pid)}catch(_){}const p=edPt(e);ed.drag={x0:p.x,y0:p.y,x:p.x,y:p.y,sx:e.clientX,cam:ed.cam}}
@@ -914,8 +918,8 @@ function edUp(e){
   const d=ed.drag;if(!d||e.pointerId!==pid)return;ed.drag=null;pid=null;const T=ed.tool,E=ed.E,x0=Math.min(d.x0,d.x),x1=Math.max(d.x0,d.x);
   const save=()=>ed.hist.push(JSON.stringify(E)),bad=t=>{toast={t,life:150,bad:true,ed:1};sfx('no')};
   if(T==='pan')return;
-  if(T==='ground'||T==='isl'){if(x1-x0<40)return bad('Проведи пальцем вбок — так задаётся ширина');save();const y=clampV(d.y0,T==='isl'?100:150,590);E.p.push(T==='isl'?[x0,x1,y,{h:60}]:[x0,x1,y])}
-  else if(T==='rock'){if(x1-x0<30)return bad('Проведи пальцем вбок — так задаётся ширина скалы');save();(E.o=E.o||[]).push([x0,x1,clampV(d.y0,40,540)])}
+  if(T==='ground'||T==='isl'){if(x1-x0<40)return bad('Проведи пальцем вбок — так задаётся ширина');if(E.p.length>=40)return bad('Больше 40 площадок нельзя');save();const y=clampV(d.y0,T==='isl'?100:150,590);E.p.push(T==='isl'?[x0,x1,y,{h:60}]:[x0,x1,y])}
+  else if(T==='rock'){if(x1-x0<30)return bad('Проведи пальцем вбок — так задаётся ширина скалы');if((E.o||[]).length>=20)return bad('Больше 20 скал нельзя');save();(E.o=E.o||[]).push([x0,x1,clampV(d.y0,40,540)])}
   else if(T==='spk'){const q=edBlockAt(d.x0,d.y0,40);if(!q)return bad('Проведи по верху площадки');const a=Math.max(q[0],x0),b=Math.min(q[1],x1);if(b-a<20)return bad('Проведи вбок пошире');
     save();const f=q[3]=q[3]||{};delete f.pit;delete f.spk;if(a<=q[0]+5&&b>=q[1]-5&&!f.h)f.pit=1;else f.spk=[a,b]}
   else if(T==='coin'){save();E.coin=[d.x,d.y]}
@@ -928,12 +932,12 @@ function edUp(e){
         if(f&&(f.pit||f.spk)&&Math.abs(d.y-q[2])<=25){delete f.pit;delete f.spk;if(!Object.keys(f).length)q.length=3}else E.p.splice(E.p.indexOf(q),1)}}}
   sfx('place');edShow()}
 function edDone(play){ // сохранить; play — сразу сыграть
-  const C=prog.custom[ed.idx],code=encLevel(ed.E);if(C.c!==code){C.c=code;C.b=0}saveProg();
+  const C=prog.custom[ed.idx],code=encLevel(ed.E);if(!decLevel(code)){toast={t:'Уровень не сохраняется — убери лишнее',life:200,bad:true,ed:1};sfx('no');return}if(C.c!==code){C.c=code;C.b=0}saveProg();
   const i=ed.idx;if(play){const err=edCheck(edLevel(ed.E));if(err){toast={t:err,life:200,bad:true,ed:1};sfx('no');return}}
   edClose();if(play)playCustom(i,true);else openMine()}
 function edClose(){ed=null;document.body.classList.remove('editing');$('edBar').hidden=true;pid=null;
   if(prog.mode==='br'){lvlIdx=prog.cur;loadBridge(prog.bridge.cur)}else load(prog.cur)} // поле за меню — обычный уровень, как при запуске
-function playCustom(i,edit){const C=prog.custom[i],E=C&&decLevel(C.c);if(!E)return;const Lv=edLevel(E),err=edCheck(Lv);if(err){toast={t:err,life:200,bad:true};sfx('no');return}
+function playCustom(i,edit){const C=prog.custom[i],E=C&&decLevel(C.c);if(!E){toast={t:'Уровень повреждён — открой его в редакторе',life:200,bad:true};sfx('no');return}const Lv=edLevel(E),err=edCheck(Lv);if(err){toast={t:err,life:200,bad:true};sfx('no');return}
   hideScreens();loadSpecial({kind:'custom',idx:i,edit:!!edit,L:Lv,title:'✎ '+C.n,seed:hashStr(C.c)%997,coinKey:null})}
 function openMine(){
   const box=$('myList');box.textContent='';
@@ -942,13 +946,13 @@ function openMine(){
     const row=document.createElement('div');row.className='myrow';const tx=document.createElement('div');tx.className='mytxt';const nm=document.createElement('b');nm.textContent=C.n;
     const sm=document.createElement('small');sm.textContent=C.b?'лучший результат: '+C.b+' '+plural(C.b,'шарик','шарика','шариков'):'ещё не пройден';tx.append(nm,sm);
     const mk=(t,title,f,cls)=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.title=title;b.setAttribute('aria-label',title+': '+C.n);if(cls)b.className=cls;b.onclick=f;return b};
-    let armed=0;const del=mk('✕','Удалить',()=>{if(Date.now()-armed>3000){armed=Date.now();del.textContent='Точно?';return}prog.custom.splice(i,1);saveProg();openMine()},'ghost');
+    let armed=0;const del=mk('✕','Удалить',()=>{if(Date.now()-armed>3000){armed=Date.now();del.textContent='Точно?';return}prog.custom.splice(i,1);saveProg();if(special&&special.kind==='custom'){if(special.idx===i)special.idx=-1;else if(special.idx>i)special.idx--}openMine()},'ghost');
     row.append(tx,mk('▶','Играть',()=>playCustom(i)),mk('✎','Редактировать',()=>openEditor(i),'ghost'),mk('Код','Поделиться кодом',()=>openCode('out',i),'ghost'),del);box.appendChild(row)});
   show1('myOv');$('myBack').focus({preventScroll:true})}
 function openCode(mode,i){
   const tx=$('codeTx');show1('codeOv');
   if(mode==='out'){$('codeT').textContent=prog.custom[i].n;tx.value=prog.custom[i].c;tx.readOnly=true;$('codeHint').textContent='Отправь код другу: у него «Редактор» → «Ввести код»';
-    $('codeOk').textContent='Скопировать';$('codeOk').onclick=()=>{tx.select();copyText(tx.value);$('codeHint').textContent='Скопировано — вставь в сообщение другу'}}
+    $('codeOk').textContent='Скопировать';$('codeOk').onclick=()=>{copyText(tx.value,ok=>{tx.select();$('codeHint').textContent=ok?'Скопировано — вставь в сообщение другу':'Не получилось — выдели код и скопируй вручную'})}}
   else{$('codeT').textContent='Ввести код';tx.value='';tx.readOnly=false;$('codeHint').textContent='Вставь код уровня, который прислал друг';$('codeOk').textContent='Загрузить';
     $('codeOk').onclick=()=>{const E=decLevel(tx.value);if(!E){$('codeHint').textContent='Код не подошёл — проверь, что он скопирован целиком';sfx('no');return}
       if(prog.custom.length>=50){$('codeHint').textContent='Уже 50 уровней — удали лишние';return}
@@ -1054,7 +1058,7 @@ function* hintGen(){
   for(const o of pre){sim=true;hLoad(base);hPlace(o.r.p);const br=broken;for(let q=0;q<120&&!lost;q++)step();
     if(lost||broken>br){hLoad(base);sim=false;o.look=-1;yield;continue}
     const s1=hState(),g1=hMetrics(geo).g,c2=hCands(geo,12,0);hLoad(base);sim=false;o.look=0;yield;
-    for(const p2 of c2){const r=hTry(s1,p2,75,geo,g1);if(r&&(r.win||(r.prog>6&&r.m.margin>10)))o.look=Math.max(o.look,r.win?1e9:r.prog);yield}
+    for(const p2 of c2){const r=hTry(s1,p2,75,geo,g1);hLoad(base);if(r&&(r.win||(r.prog>6&&r.m.margin>10)))o.look=Math.max(o.look,r.win?1e9:r.prog);yield}
     hLoad(base)}
   pre.sort((a,b)=>b.look-a.look||b.s-a.s);return pre[0].look>=0?pre[0].r.p:null}
 function startHint(){
@@ -1063,7 +1067,8 @@ function startHint(){
   if(prog.hints<=0&&prog.coins<HINT_COST){toast={t:'Подсказка стоит '+HINT_COST+' монет — их дают за уровни',life:150,bad:true};sfx('no');return}
   ghost=null;hover=null;thinking={g:hintGen(),t0:performance.now()};requestAnimationFrame(pumpHint)}
 function pumpHint(){
-  const th=thinking;if(!th)return;const end=performance.now()+12,m0=mat;let r={done:false};mat='w';
+  const th=thinking;if(!th)return;if(anyScreen()||ed){thinking=null;updCnt();return} // открыли меню — отмена (на поле и так исходное состояние)
+  const end=performance.now()+12,m0=mat;let r={done:false};mat='w';
   try{do r=th.g.next();while(!r.done&&performance.now()<end)}catch(e){console.error('hint',e);r={done:true,value:null}}finally{mat=m0;sim=false}
   if(thinking!==th)return; // отменили (отмена хода, меню, новый уровень)
   if(!r.done){requestAnimationFrame(pumpHint);return}
@@ -1402,10 +1407,12 @@ function draw(time){
   drawFront(time);
   if(thinking){const a=time*.006,x=cw/2,y=Math.min(ch-60,ch*.75);ctx.fillStyle='rgba(255,255,255,.88)';ctx.beginPath();ctx.roundRect?ctx.roundRect(x-74,y-20,148,40,20):ctx.rect(x-74,y-20,148,40);ctx.fill(); // идёт расчёт подсказки
     ctx.strokeStyle='#f2b43a';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x-46,y,9,a,a+4.2);ctx.stroke();ctx.fillStyle='#141414';ctx.font='500 15px Rubik, system-ui, sans-serif';ctx.fillText('думаю…',x-28,y+5)}
-  if(toast&&toast.life>0){toast.life--;const a=Math.min(1,toast.life/30);ctx.globalAlpha=a;let fs=15;ctx.font='500 15px Rubik, system-ui, sans-serif';const w0=ctx.measureText(toast.t).width;if(w0+28>cw-24){fs=Math.max(10,15*(cw-52)/w0);ctx.font='500 '+fs.toFixed(1)+'px Rubik, system-ui, sans-serif'}
+  if(toast&&toast.life>0){toast.life-=toast.lt&&time>toast.lt?Math.min(6,(time-toast.lt)/16.67):1;toast.lt=time; // время жизни — в кадрах по 60 в секунду, даже когда под меню рисуется реже
+    const a=Math.max(0,Math.min(1,toast.life/30));ctx.globalAlpha=a;let fs=15,tt=toast.t;ctx.font='500 15px Rubik, system-ui, sans-serif';const w0=ctx.measureText(tt).width;if(w0+28>cw-24){fs=Math.max(10,15*(cw-52)/w0);ctx.font='500 '+fs.toFixed(1)+'px Rubik, system-ui, sans-serif';
+      if(toast.tK!==cw){toast.tK=cw;while(tt.length>4&&ctx.measureText(tt).width+28>cw-24)tt=tt.slice(0,-2)+'…';toast.tt=tt}tt=toast.tt}
     let ty=ch-96;if(ch<500){const K=cw+'x'+ch;if(toast.yK!==K){toast.yK=K;const top=cv.getBoundingClientRect().top;let y=(ed?$('edBar'):document.querySelector('.hud')).getBoundingClientRect().bottom;const lg=document.querySelector('.legend').getBoundingClientRect();if(lg.height&&lg.top<ch/2)y=Math.max(y,lg.bottom);toast.y=Math.round(y-top+8)}ty=Math.min(ch-44,toast.y)}
-    const tw=ctx.measureText(toast.t).width+28,tx=(cw-tw)/2;ctx.fillStyle=toast.bad?'#d8453b':'#4caf6a';ctx.beginPath();ctx.roundRect?ctx.roundRect(tx,ty,tw,34,17):ctx.rect(tx,ty,tw,34);ctx.fill();
-    ctx.fillStyle='#fff';ctx.fillText(toast.t,tx+14,ty+22);ctx.globalAlpha=1}
+    const tw=ctx.measureText(tt).width+28,tx=(cw-tw)/2;ctx.fillStyle=toast.bad?'#d8453b':'#4caf6a';ctx.beginPath();ctx.roundRect?ctx.roundRect(tx,ty,tw,34,17):ctx.rect(tx,ty,tw,34);ctx.fill();
+    ctx.fillStyle='#fff';ctx.fillText(tt,tx+14,ty+22);ctx.globalAlpha=1}
 }
 // оверлей: при показе переводим фокус на кнопку (Enter/Space срабатывают сразу)
 new MutationObserver(()=>{if(!$('ov').hidden)$('ovB').focus({preventScroll:true})}).observe($('ov'),{attributes:true,attributeFilter:['hidden']});

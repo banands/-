@@ -1,0 +1,4 @@
+# выпущенные APK: versionCode versionName (дописывает android/build_apk.py после подписи)
+20 0.18
+21 0.19
+22 0.20

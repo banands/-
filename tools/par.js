@@ -7,20 +7,22 @@ const [file, ...rest] = process.argv.slice(2);
 const write = rest.includes('--write'), files = rest.filter(a => a !== '--write');
 const src = fs.readFileSync(file, 'utf8');
 const oldPar = JSON.parse(src.match(/^const PAR=(\[[^\]]*\]);/m)[1]);
+const oldRR = JSON.parse(src.match(/^const REROLL=(\{[^}]*\});/m)[1].replace(/(\d+):/g, '"$1":'));
 const res = {}; for (const f of files) Object.assign(res, JSON.parse(fs.readFileSync(f, 'utf8'))); // поздние файлы перекрывают ранние
 const n = Math.max(oldPar.length, ...Object.keys(res).map(k => +k + 1));
 const par = [], reroll = {}, bad = [];
 for (let i = 0; i < n; i++) {
   if (i < 12) { par.push(oldPar[i]); continue }
   const r = res[i];
-  if (!r || !r.ok) { par.push(0); bad.push(i + 1); continue } // 0 — в игре норма считается по формуле
+  // нет результата (прогоняли не все уровни) или бот не прошёл — старая норма и соль остаются; 0 — в игре норма по формуле
+  if (!r || !r.ok) { par.push(oldPar[i] || 0); if (oldRR[i]) reroll[i] = oldRR[i]; if (r) bad.push(i + 1); continue }
   par.push(Math.min(30, Math.round(r.balls * 1.1)));
   if (r.salt) reroll[i] = r.salt;
 }
 const parLine = 'const PAR=' + JSON.stringify(par) + ';';
 const rrLine = 'const REROLL=' + JSON.stringify(reroll).replace(/"(\d+)":/g, '$1:') + ';';
 console.log(parLine); console.log(rrLine);
-if (bad.length) console.log('без решения (норма по формуле):', bad.join(', '));
+if (bad.length) console.log('бот не прошёл (оставлена прежняя норма):', bad.join(', '));
 if (write) {
   let out = src.replace(/^const PAR=\[[^\]]*\];/m, parLine).replace(/^const REROLL=\{[^}]*\};/m, rrLine);
   fs.writeFileSync(file, out); console.log('записано в', file);

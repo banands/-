@@ -11,7 +11,7 @@ const ids = []; for (const part of range.split(',')) { const [a, b] = part.split
   const br = await chromium.launch(); const res = {}; let next = 0, doneN = 0; const t0 = Date.now();
   async function worker() {
     const ctx = await br.newContext(); const p = await ctx.newPage();
-    p.on('pageerror', e => console.error('pageerror', e.message));
+    p.on('pageerror', e => { console.error('pageerror', e.message); process.exitCode = 1 }); p.on('console', m => { if (m.type() === 'error' && !/ERR_CERT|net::/.test(m.text())) { console.error('console', m.text()); process.exitCode = 1 } });
     await p.goto('file://' + path.resolve(file)); await p.addScriptTag({ path: path.join(__dirname, 'bot.js') });
     while (next < ids.length) {
       const i = ids[next++]; const t = Date.now();
@@ -21,10 +21,10 @@ const ids = []; for (const part of range.split(',')) { const [a, b] = part.split
         for (const opt of VARIANTS) { const q = await p.evaluate(([i, o, salt]) => { if (salt != null) REROLL[i] = salt; return solveLevel(i, o) }, [i, opt, salt]); if (!r || (q.ok && (!r.ok || q.balls < r.balls))) r = q }
         return r;
       };
-      let r = await best(null), salt = 0;
+      let salt = await p.evaluate(i => REROLL[i] | 0, i), r = await best(salt);
       // --reroll: не прошёл или слишком тяжёлый (> HARD шариков) — пробуем другую «соль» генератора
       if (REROLL_MAX && (!r.ok || r.balls > HARD)) for (let k = 1; k <= REROLL_MAX; k++) {
-        const q = await best(k); if (q.ok && (!r.ok || q.balls < r.balls)) { r = q; salt = k } if (r.ok && r.balls <= HARD) break;
+        if (k === salt) continue; const q = await best(k); if (q.ok && (!r.ok || q.balls < r.balls)) { r = q; salt = k } if (r.ok && r.balls <= HARD) break;
       }
       res[i] = { ok: r.ok, balls: r.balls, reason: r.reason || '', salt, sec: Math.round((Date.now() - t) / 1000) };
       doneN++; console.log(`${doneN}/${ids.length} ур.${i + 1}: ${r.ok ? 'OK ' + r.balls : 'FAIL ' + r.reason + ' ' + r.balls}${salt ? ' соль ' + salt : ''} (${res[i].sec}s)`);

@@ -5,7 +5,7 @@ const [file, out, list, size = '1000x600'] = process.argv.slice(2);
 (async () => {
   const [w, h] = size.split('x').map(Number);
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: w, height: h } });
-  const errs = []; p.on('pageerror', e => errs.push(e.message));
+  const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error' && !/ERR_CERT|net::/.test(m.text())) errs.push('console: ' + m.text()) });
   await p.goto('file://' + path.resolve(file)); await p.waitForTimeout(200);
   const ids = list.split(',');
   for (const id of ids) {

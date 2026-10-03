@@ -38,6 +38,7 @@ const [file, N = '40', W = '4'] = process.argv.slice(2);
   }
   await Promise.all(Array.from({ length: +W }, worker));
   const by = {}; for (const r of res) { const o = by[r.kind] || (by[r.kind] = { n: 0, fail: 0, balls: [] }); o.n++; if (!r.ok) o.fail++; else o.balls.push(r.balls) }
+  if (res.some(r => !r.ok)) process.exitCode = 1;
   for (const [k, o] of Object.entries(by)) { o.balls.sort((a, b) => a - b); console.log(k, 'всего', o.n, 'провалов', o.fail, 'медиана шариков', o.balls[o.balls.length >> 1], 'макс', o.balls[o.balls.length - 1]) }
   await b.close();
 })();
