@@ -23,6 +23,9 @@
   button:hover{background:#fff}
   #inf{font-weight:700;min-width:44px}
   #inf.on{background:var(--flag)}
+  #mat .sw{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;background:linear-gradient(#c08a52,#8a5a2e)}
+  #mat.steel{background:#3b4552;color:#fff}
+  #mat.steel .sw{background:linear-gradient(#c9d1db,#6b7684);box-shadow:0 0 0 1.5px #fff}
   button:focus-visible{outline:3px solid var(--flag);outline-offset:2px}
   .overlay{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
   .overlay[hidden]{display:none}
@@ -48,6 +51,20 @@
   .card .big{font-size:18px;font-weight:700;background:var(--ink);display:flex;flex-direction:column;align-items:center;gap:2px}
   .card .big small{font-size:12px;font-weight:500;opacity:.75}
   .card.mm .endless{margin:0}
+  .card.mm{max-width:min(460px,calc(100% - 32px))} /* две кнопки в ряд не переносят подписи */
+  .card .daily{background:#cfe8f5}
+  /* редактор и свои уровни */
+  .mylist{display:flex;flex-direction:column;gap:6px;margin:0 0 12px;max-height:max(120px,min(52vh,calc(100vh - 200px)));overflow:auto;text-align:left}
+  .myrow{display:flex;align-items:center;gap:6px;background:#f3f5f7;border-radius:12px;padding:6px 8px}
+  .myrow .mytxt{flex:1;min-width:0;display:flex;flex-direction:column}.myrow .mytxt b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .myrow small{font-size:12px;opacity:.6}.myrow button{min-height:40px;padding:6px 12px;border-radius:10px}
+  .card textarea{width:100%;box-sizing:border-box;margin:0 0 8px;padding:8px 10px;border:1px solid #cdd3da;border-radius:10px;font:13px/1.35 ui-monospace,monospace;resize:none;-webkit-user-select:text;user-select:text;word-break:break-all}
+  .edbar{position:absolute;top:calc(8px + env(safe-area-inset-top,0px));left:calc(10px + env(safe-area-inset-left,0px));right:calc(10px + env(safe-area-inset-right,0px));display:flex;flex-wrap:wrap;gap:6px;justify-content:space-between;pointer-events:none}
+  .edbar>div{display:flex;flex-wrap:wrap;gap:5px;pointer-events:auto}
+  .edbar button{min-height:38px;padding:6px 11px;font-size:13px}
+  .edbar .edtools button.on{background:var(--flag);font-weight:700}
+  #edPlay{background:var(--ink);color:#fff}
+  body.editing .hud,body.editing .legend{display:none}
   .coins{align-self:center;display:inline-flex;align-items:center;gap:6px;background:#fff6dc;border-radius:999px;padding:4px 12px;font-weight:700;font-variant-numeric:tabular-nums;margin:0 auto 6px}
   .coin{display:inline-block;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ffe58a,#e0a21a);box-shadow:inset 0 0 0 2px #c98b10}
   .card.wide{max-width:min(560px,calc(100% - 32px));width:100%}
@@ -87,8 +104,8 @@
   body.bridge #ov{place-items:start center;padding-top:calc(max(var(--hudB,54px),54px) + 10px);box-sizing:border-box;overflow:auto}
   body.bridge #ov .card{max-height:calc(100% - max(var(--hudB,54px),54px) - 20px);overflow:auto}
   @media (max-width:480px),(max-height:440px){
-    .hud #undo,.hud #reset{min-width:44px;padding-inline:0;font-size:18px;line-height:1}
-    .hud #undo .lbl,.hud #reset .lbl{display:none}
+    .hud #undo,.hud #reset,.hud #mat{min-width:44px;padding-inline:0;font-size:18px;line-height:1}
+    .hud #undo .lbl,.hud #reset .lbl,.hud #mat .lbl{display:none}
   }
   @media (max-width:480px){ /* ≤2 ряда: [плашка ↶ ⟲] / [▶ Проверить ∞ ☰ Меню] */
     .hud{gap:6px 5px;left:calc(10px + env(safe-area-inset-left,0px));right:calc(10px + env(safe-area-inset-right,0px));justify-content:flex-end}
@@ -109,6 +126,7 @@
     .card.mm>#mmLevels,.card.mm>#mmBridges{grid-column:auto}
     .card.mm .coins{justify-self:center}
     .card.wide{position:relative;padding:12px 18px}
+    .tg{padding:5px 4px;font-size:14px}.tg small{display:inline;margin-left:4px}.card .danger{margin:8px 0 6px}#set .card{padding-block:14px}#set h2{margin-bottom:2px}
     .card.wide h2{font-size:20px;margin:0 0 8px}
     .card.wide>.coins{position:absolute;top:12px;right:16px;margin:0}
     .card.wide>.hint{display:none}
@@ -126,6 +144,8 @@
     <div class="btns">
       <button id="test" type="button" hidden title="Пустить тележку по мосту">▶ Проверить</button>
       <button id="inf" type="button" hidden title="Режим без лимита шариков">∞</button>
+      <button id="hintB" type="button" title="Подсказка: куда поставить шарик">💡</button>
+      <button id="mat" type="button" title="Материал: дерево или сталь (крепче, тяжелее, стоит 2 шарика)" aria-pressed="false"><i class="sw"></i><span class="lbl"> Дерево</span></button>
       <button id="menu" type="button">☰ Меню</button>
       <span class="ur"><button id="undo" type="button" aria-label="Отменить" title="Отменить ход">↶<span class="lbl"> Отменить</span></button>
       <button id="reset" type="button" aria-label="Заново" title="Начать заново">⟲<span class="lbl"> Заново</span></button></span>
@@ -139,19 +159,28 @@
     <button id="mmPlay" type="button" class="big">▶ Играть<small id="mmPlaySub"></small></button>
     <button id="mmLevels" type="button">Уровни</button>
     <button id="mmBridges" type="button">Мосты</button>
-    <button id="mmEndless" type="button" class="endless">∞ Бесконечный путь<small id="endlessRec"></small></button>
-    <div class="row"><button id="mmSkins" type="button">Скины</button><button id="mmSet" type="button">Настройки</button></div>
+    <div class="row"><button id="mmEndless" type="button" class="endless">∞ Бесконечный путь<small id="endlessRec"></small></button><button id="mmDaily" type="button" class="endless daily">☀ Уровень дня<small id="dailySub"></small></button></div>
+    <div class="row"><button id="mmEditor" type="button">Редактор</button><button id="mmSkins" type="button">Скины</button><button id="mmSet" type="button">Настройки</button></div>
   </div></div>
   <div class="overlay screen" id="shop" hidden><div class="card wide"><h2>Скины</h2><div class="coins"><i class="coin"></i><span id="shopCoins">0</span></div>
     <p class="hint">Монеты: 10 за первое прохождение уровня, 5 за каждую новую звезду и за бонусную монетку на уровне, 2 за флажок в бесконечном пути</p>
     <div class="shop" id="shopList"></div><button id="shopBack" class="ghost" type="button">← Назад</button></div></div>
+  <div class="overlay screen" id="myOv" hidden><div class="card wide"><h2>Мои уровни</h2>
+    <div class="mylist" id="myList"></div>
+    <div class="row"><button id="myNew" type="button">+ Новый</button><button id="myCode" type="button" class="ghost">Ввести код</button><button id="myBack" class="ghost" type="button">← Назад</button></div></div></div>
+  <div class="overlay screen" id="codeOv" hidden><div class="card"><h2 id="codeT">Код уровня</h2>
+    <textarea id="codeTx" rows="4" spellcheck="false" autocomplete="off" aria-label="Код уровня"></textarea><p class="hint" id="codeHint"></p>
+    <div class="row"><button id="codeOk" type="button"></button><button id="codeBack" class="ghost" type="button">← Назад</button></div></div></div>
+  <div class="edbar" id="edBar" hidden><div class="edtools" id="edTools"></div>
+    <div class="edacts"><button id="edUndo" type="button" title="Отменить" aria-label="Отменить">↶</button><button id="edPlay" type="button">▶ Играть</button><button id="edDone" type="button">✓ Готово</button></div></div>
   <div class="overlay screen" id="set" hidden><div class="card" style="position:relative"><h2>Настройки</h2>
+    <label class="tg"><input type="checkbox" id="stSound"><span>Звуки</span></label>
     <label class="tg"><input type="checkbox" id="stAnim"><span>Анимация фона <small>облака, снег, звёзды</small></span></label>
     <label class="tg"><input type="checkbox" id="stLegend"><span>Подсказка про нагрузку</span></label>
     <label class="tg"><input type="checkbox" id="stZone"><span>Граница зоны досягаемости</span></label>
     <button id="stReset" type="button" class="danger">Сбросить прогресс</button>
-    <button id="setBack" class="ghost" type="button">← Назад</button><p class="ver">версия 0.19</p></div></div>
-  <div class="overlay" id="ov" hidden><div class="card"><h2 id="ovT"></h2><p id="ovP"></p><div class="row"><button id="ovB" type="button"></button><button id="ovB2" class="ghost" type="button" hidden></button></div></div></div>
+    <button id="setBack" class="ghost" type="button">← Назад</button><p class="ver">версия 0.20</p></div></div>
+  <div class="overlay" id="ov" hidden><div class="card"><h2 id="ovT"></h2><p id="ovP"></p><div class="row"><button id="ovB" type="button"></button><button id="ovB2" class="ghost" type="button" hidden></button><button id="ovB3" class="ghost" type="button" hidden></button></div></div></div>
 </div>
 
 <script>
@@ -179,17 +208,19 @@ const NAMES=['Перевал','Каньон','Острова','Ступени','
 const FNAMES={isl:['Остров','Архипелаг','Облака'],pit:['Колючки','Кактусы','Яма'],spk:['Шипы','Ёжик','Колючий берег'],rock:['Навес','Грот','Козырёк']};
 // новинки впервые — по одной на уровнях 13–19 (номер сгенерированного уровня -> что показать); монетка — с 14-го
 const INTRO={0:'isl',2:'pit',4:'spk',6:'rock'},FEATS=['isl','pit','spk','rock'];
+function dailyFeats(rnd,cnt){const f=FEATS.filter(()=>rnd()<.4);if(!f.length)f.push(FEATS[Math.floor(rnd()*FEATS.length)]);return f.slice(0,cnt>2?2:1)}
 // уровни, где бот-строитель не прошёл первый вариант: номер -> «соль» генератора (tools/solve.js --reroll)
 const REROLL={31:1,52:1,58:1,62:1,128:1};
-function genLevel(i){
-  let a=(Math.imul(i,0x9E3779B1)^Math.imul(REROLL[i]|0,0x85EBCA6B))>>>0; // mulberry32
+function genLevel(i){return genLv((Math.imul(i,0x9E3779B1)^Math.imul(REROLL[i]|0,0x85EBCA6B))>>>0,i-LEVELS.length)}
+// a — зерно, n — номер сгенерированного уровня (сложность); daily — уровень дня: средняя сложность, 1–2 новинки и монетка
+function genLv(a,n,daily){
   const rnd=()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296};
   const pick=A=>A[Math.floor(rnd()*A.length)];
-  const n=i-LEVELS.length,k=Math.min(1,n/30); // сложность растёт и упирается в потолок
+  const k=Math.min(1,n/30); // сложность растёт и упирается в потолок
   const cnt=2+(rnd()<.45+.3*k?1:0)+(rnd()<.2+.35*k?1:0); // 2..4 площадки (+ острова)
   const clampY=y=>Math.round(Math.max(210,Math.min(565,y)));
   // новинки: на обучающем уровне — ровно одна, до 20-го — ни одной случайной, дальше 0..2 на участки
-  const intro=INTRO[n],feats=intro?[intro]:n<7?[]:FEATS.filter(()=>rnd()<.3).slice(0,cnt>2?2:1);
+  const intro=daily?null:INTRO[n],feats=daily?dailyFeats(rnd,cnt):intro?[intro]:n<7?[]:FEATS.filter(()=>rnd()<.3).slice(0,cnt>2?2:1);
   const slot={};{const S=[];for(let s=1;s<cnt;s++)S.push(s);for(const f of feats){if(!S.length)break;slot[S.splice(Math.floor(rnd()*S.length),1)[0]]=f}}
   let y=clampY(intro==='pit'?400+rnd()*60:490+rnd()*70),x=Math.round(320+rnd()*120); // яме нужна глубина: обучающий уровень начинается выше
   const p=[[-600,x,y]],o=[],gaps=[];let prev='';
@@ -225,7 +256,7 @@ function genLevel(i){
   }
   const L={name:(feats.length?pick(FNAMES[feats[0]]):pick(NAMES))+' #'+(n+1),p,start:Math.max(-60,p[0][1]-200-Math.round(rnd()*60))};
   if(o.length)L.o=o;
-  if(n>=1&&gaps.length&&(n===1||rnd()<.4)){const g=pick(gaps);L.coin=[Math.round((g[0]+g[1])/2),Math.max(110,g[2]-Math.round(110+rnd()*70))]} // бонус: над пропастью, повыше
+  if(n>=1&&gaps.length&&(daily||n===1||rnd()<.4)){const g=pick(gaps);L.coin=[Math.round((g[0]+g[1])/2),Math.max(110,g[2]-Math.round(110+rnd()*70))]} // бонус: над пропастью, повыше
   return L;
 }
 // ---- бесконечный путь: площадки генерируются впереди, каждая — флажок; на флажке старая часть конструкции убирается
@@ -260,7 +291,7 @@ function egFill(){ // держим впереди минимум 6 непрой�
   maxX=eg.x+200;
 }
 function loadEndless(){
-  leaveBridge();endless=true;won=lost=false;clearTimeout(t0);
+  leaveBridge();special=null;endless=true;won=lost=false;clearTimeout(t0);hintP=null;setMat('w');
   let a=(Date.now()^0x5bd1e995)>>>0;const rnd=()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296};
   const y0=520;originRect={x:-600,y:y0,w:1000,h:900};terrain=[originRect];goalR=null;coin=null;pops=[];spiky=false;hintK=null;
   eg={rnd,x:400,y:y0,prev:'',n:0};cps=[];cp=0;cpT=0;cpJ=-1;cpSnap=null;toast=null;passed=[];flags=0;used=1;
@@ -319,6 +350,16 @@ const BLEVELS=[
   {name:'Подъём',     p:[[-600,220,470],[780,1600,360]], w:[80,90], par:10},
   {name:'Пик',        p:[[-600,170,400],[475,525,470],[830,1600,430]], w:[80,80], par:11},
   {name:'Бездна',     p:[[-600,160,420],[840,1600,420]], w:[90,90], par:11},
+  // 11–18: o — скала над пролётом [x0,x1,низ], pit — дно в шипах [x0,x1,y], cm — вес тележки (обычный CM), note — подсказка на мосту;
+  // нормы — шарики лучшей типовой фермы tools/bridge_check.js ×1.2
+  {name:'Два столба', p:[[-600,150,420],[400,450,420],[700,750,420],[1000,1600,420]], w:[85,85], par:11},
+  {name:'Навес',      p:[[-600,250,430],[750,1600,430]], w:[90,90], o:[[330,670,352]], par:12, note:['скала низко —','ферму строй под дорогой']},
+  {name:'Колючки',    p:[[-600,240,420],[760,1600,420]], w:[70,70], pit:[240,760,560], par:12, note:['внизу шипы —','ферму строй над дорогой']},
+  {name:'Грузовик',   p:[[-600,260,430],[740,1600,430]], w:[85,85], cm:14, par:16, note:['тележка тяжелее —','пригодится сталь']},
+  {name:'Перевал',    p:[[-600,220,470],[780,1600,370]], w:[80,90], o:[[420,620,305]], par:17},
+  {name:'Иглы',       p:[[-600,170,420],[440,500,430],[760,820,420],[1080,1600,420]], w:[80,80], pit:[170,1080,565], par:18},
+  {name:'Тяжёлый пролёт',p:[[-600,160,420],[480,520,420],[840,1600,420]], w:[90,90], cm:14, par:12},
+  {name:'Финал',      p:[[-600,150,430],[430,480,430],[720,770,430],[1050,1600,430]], w:[80,80], o:[[180,1020,345]], pit:[150,1050,568], cm:12, par:15},
 ];
 const KS=.0031,CR=14,BT=3,CM=8,VMAX=2.6,ACC=.2; // KS: сила в палке -> нагрузка (лопается при ~13); тележка: радиус, полутолщина палки, вес (шарик = 1), скорость, разгон
 let bridge=false,bIdx=0,BL=null,cart=null,testing=false,preTest=null,nPin=0;
@@ -328,13 +369,16 @@ function bAnchors(B){ // болты: левый край, правый край,
   if(B.w[0])o.push([a[1]+4,a[2]+B.w[0]]);if(B.w[1])o.push([z[0]-4,z[2]+B.w[1]]);
   for(let k=1;k<p.length-1;k++)o.push([p[k][0]-4,p[k][2]+80],[p[k][1]+4,p[k][2]+80]); // столб: болты и на боковых стенах
   return o}
-function leaveBridge(){document.body.classList.toggle('bridge',false);bridge=false;cart=null;testing=false;preTest=null;nPin=0;$('test').hidden=true;if(prog.mode==='br'){prog.mode='lv';saveProg()}}
+function leaveBridge(){document.body.classList.toggle('bridge',false);bridge=false;cart=null;testing=false;preTest=null;nPin=0;$('test').hidden=true;$('hintB').hidden=false;if(prog.mode==='br'){prog.mode='lv';saveProg()}}
 function loadBridge(i){
   i=Math.max(0,Math.min(i|0,BLEVELS.length-1,prog.bridge.best));
-  clearTimeout(t0);endless=false;originRect=null;passed=[];bridge=true;bIdx=i;BL=BLEVELS[i];document.body.classList.toggle('bridge',true);
+  clearTimeout(t0);endless=false;special=null;hintP=null;setMat('w');originRect=null;passed=[];bridge=true;bIdx=i;BL=BLEVELS[i];document.body.classList.toggle('bridge',true);
   prog.bridge.cur=i;prog.mode='br';saveProg();
   themeSeed=300+i;par=BL.par;limit=prog.inf?Infinity:limitFor(par);TH=THEMES[themeIdx(themeSeed)];makeSky();document.body.style.background=TH.sky[0];
-  terrain=BL.p.map(([x0,x1,y])=>({x:x0,y,w:x1-x0,h:900}));goalR=terrain[terrain.length-1];coin=null;pops=[];spiky=false;hintK=null;
+  terrain=BL.p.map(([x0,x1,y])=>({x:x0,y,w:x1-x0,h:900}));goalR=terrain[terrain.length-1];coin=null;pops=[];hintK=null;
+  if(BL.pit)terrain.push(mkRect([BL.pit[0],BL.pit[1],BL.pit[2],{pit:1}])); // дно пропасти в шипах: ферма снизу не должна их касаться
+  if(BL.o)for(const q of BL.o)terrain.push(mkRock(q)); // скала над пролётом: ферма сверху — невысокая
+  spiky=terrain.some(r=>r.spk);
   const A=bAnchors(BL);BL.anc=A;const pl=BL.p[0],pr=BL.p[BL.p.length-1]; // пандусы: с земли на уровень палок у крайних болтов
   BL.ramps=[[{x:pl[1]-50,y:pl[2]+BT},{x:A[0][0],y:A[0][1]}],[{x:A[1][0],y:A[1][1]},{x:pr[0]+50,y:pr[2]+BT}]];goalX=A[1][0]+60;goalTop=terrain[terrain.length-1].y;
   cps=[];cp=0;cpT=0;cpJ=-1;cpSnap=null;toast=null;nodes=[];bars=[];hist=[];winT=0;debris=[];broken=0;
@@ -344,20 +388,22 @@ function loadBridge(i){
   won=lost=false;$('ov').hidden=true;setTestBtn();
   $('lvl').textContent='Мост '+(i+1)+' · '+BL.name;updCnt();
 }
-function setTestBtn(){const b=$('test');b.hidden=!bridge;b.textContent=testing?'■ Стоп':'▶ Проверить';b.title=testing?'Остановить проверку и вернуть мост':'Пустить тележку по мосту'}
+function setTestBtn(){$('hintB').hidden=bridge;const b=$('test');b.hidden=!bridge;b.textContent=testing?'■ Стоп':'▶ Проверить';b.title=testing?'Остановить проверку и вернуть мост':'Пустить тележку по мосту'}
 function pinFix(){for(const n of nodes)if(n.pin){n.x=n.px=n.ax;n.y=n.py=n.ay;n.g=false;n.on=null}}
 function brBars(){ // палки в режиме мостов: поправка к болту целиком уходит свободному концу; сумма поправок за шаг ~ сила в палке
   for(const b of bars){const a=nodes[b.a],c=nodes[b.b];const dx=c.x-a.x,dy=c.y-a.y,d=Math.sqrt(dx*dx+dy*dy)||1e-6,f=(d-b.len)/d*.5;b.f+=d-b.len;
-    if(a.pin){if(!c.pin){c.x-=2*dx*f;c.y-=2*dy*f}}else if(c.pin){a.x+=2*dx*f;a.y+=2*dy*f}else{a.x+=dx*f;a.y+=dy*f;c.x-=dx*f;c.y-=dy*f}}}
+    if(a.pin){if(!c.pin){c.x-=2*dx*f;c.y-=2*dy*f}}else if(c.pin){a.x+=2*dx*f;a.y+=2*dy*f}
+    else if(a.m||c.m){const wa=1/(a.m||1),wc=1/(c.m||1),ka=2*f*wa/(wa+wc),kc=2*f*wc/(wa+wc);a.x+=dx*ka;a.y+=dy*ka;c.x-=dx*kc;c.y-=dy*kc}
+    else{a.x+=dx*f;a.y+=dy*f;c.x-=dx*f;c.y-=dy*f}}}
 function brStrain(){ // нагрузка = сила в палке, а не остаточное растяжение: между болтами палки почти не тянутся, а прямая цепочка под весом рвётся
-  for(const b of bars){b.s=Math.abs(b.f)*KS;b.o=b.s>BREAK?(b.o||0)+1:Math.max(0,(b.o||0)-2)}}
+  for(const b of bars){b.s=Math.abs(b.f)*KS/(b.st?STEEL_K:1);b.o=b.s>BREAK?(b.o||0)+1:Math.max(0,(b.o||0)-2)}}
 function startTest(){
   if(!bridge||anyScreen())return;
   if(testing){retryTest();return}
   if(won||lost)return;
   preTest=snap();const A=BL.anc[0],gy=terrain[0].y;
   cart={x:A[0]-110,y:gy-CR,px:A[0]-110,py:gy-CR,cx:0,cy:0,cc:0,bars:new Map(),near:[],pool:[],np:0,tp:new Set(),tn:new Set(),home:false,best:-1e9,still:0,ang:0,rot:0};
-  testing=true;ghost=null;hover=null;pid=null;winT=0;setTestBtn();toast={t:'Поехали! Тележка тяжёлая',life:90};
+  testing=true;ghost=null;hover=null;pid=null;winT=0;setTestBtn();sfx('cart');toast={t:'Поехали! Тележка тяжёлая',life:90};
 }
 function retryTest(){ // вернуть мост точно в состояние перед проверкой
   if(!preTest)return;clearTimeout(t0);
@@ -366,7 +412,7 @@ function retryTest(){ // вернуть мост точно в состояни�
 }
 function brPre(){pinFix();for(const b of bars)b.f=0;if(!cart)return; // тележка: мотор тянет вдоль опоры до скорости VMAX
   const c=cart,k=c.bars.size;
-  if(k)for(const[a,e,t,nx,ny,ia,ib]of c.bars.values()){const N=G*CM*Math.max(0,-ny)/k; // вес тележки давит на палку: концам в долях (1-t) и t
+  if(k)for(const[a,e,t,nx,ny,ia,ib]of c.bars.values()){const N=G*(BL.cm||CM)*Math.max(0,-ny)/k; // вес тележки давит на палку: концам в долях (1-t) и t
     a.x-=nx*N*(1-t)*ia;a.y-=ny*N*(1-t)*ia;e.x-=nx*N*t*ib;e.y-=ny*N*t*ib}
   c.bars.clear();c.np=0;{const t=c.tp;c.tp=c.tn;c.tn=t;t.clear()} /* tp — палки, сквозь которые тележка проходила на прошлом шаге */let vx=(c.x-c.px)*.998,vy=(c.y-c.py)*.998;c.home=c.hm>0;
   if(c.cc){const l=Math.hypot(c.cx,c.cy)||1,nx=c.cx/l,ny=c.cy/l;
@@ -381,12 +427,11 @@ function brIter(){
   if(cart){const c=cart,nb=c.near;
     for(let q=0;q<nb.length;q++){const b=nb[q],a=nodes[b.a],e=nodes[b.b];cartSeg(c,a,e,a.pin?0:1,e.pin?0:1,b)}
     for(const r of BL.ramps)cartSeg(c,r[0],r[1],0,0,r);
-    const gi=terrain.length-1;
-    for(let i=0;i<=gi;i++){const r=terrain[i],qx=Math.max(r.x,Math.min(c.x,r.x+r.w)),qy=Math.max(r.y,Math.min(c.y,r.y+r.h)),ex=c.x-qx,ey=c.y-qy,d2=ex*ex+ey*ey;
+    for(const r of terrain){const qx=Math.max(r.x,Math.min(c.x,r.x+r.w)),qy=Math.max(r.y,Math.min(c.y,r.y+r.h)),ex=c.x-qx,ey=c.y-qy,d2=ex*ex+ey*ey;
       if(d2>=CR*CR)continue;let nx,ny,pen;
       if(d2>1e-9){const d=Math.sqrt(d2);nx=ex/d;ny=ey/d;pen=CR-d}
       else{const dl=c.x-r.x,dr=r.x+r.w-c.x,dt=c.y-r.y,m=Math.min(dl,dr,dt);if(m===dt){nx=0;ny=-1;pen=dt+CR}else if(m===dl){nx=-1;ny=0;pen=dl+CR}else{nx=1;ny=0;pen=dr+CR}}
-      c.x+=nx*pen;c.y+=ny*pen;c.cx+=nx;c.cy+=ny;c.cc++;if(i===gi&&ny<-.7)c.hm=1}}
+      c.x+=nx*pen;c.y+=ny*pen;c.cx+=nx;c.cy+=ny;c.cc++;if(r===goalR&&ny<-.7)c.hm=1}}
   pinFix();
 }
 function cartSeg(c,a,e,ia,ib,key){ // тележка против палки a–e: выталкиваем тележку, реакцию делим между концами по t
@@ -400,10 +445,10 @@ function cartSeg(c,a,e,ia,ib,key){ // тележка против палки a�
     r[0]=a;r[1]=e;r[2]=t;r[3]=nx;r[4]=ny;r[5]=ia;r[6]=ib}}
 function bridgeCheck(){ // вместо обычной проверки победы: только во время проверки тележкой
   const c=cart;if(!c)return;
-  const fail=(t,p)=>{lost=true;show(t,p,'Ещё раз',retryTest,'Заново',()=>loadBridge(bIdx))};
+  const fail=(t,p)=>{lost=true;sfx('fall');show(t,p,'Ещё раз',retryTest,'Заново',()=>loadBridge(bIdx))};
   const A=BL.anc,st=[];for(let k=2;k<BL.p.length;k++)st.push(k);st.push(1); // верхние болты столбов и правого берега (узлы 2.., 1)
   const reach=j=>bars.some(b=>b.a===j||b.b===j),miss=st.find(j=>!reach(j)),pil=j=>j!==1;
-  if(c.y>H+60)return miss==null?fail('Мост не выдержал','Тележка сорвалась в пропасть. Добавь треугольников — они держат лучше.'):fail('Мост не доходит до болта','Дорога не прицеплена к болту '+(pil(miss)?'на столбе':'на том берегу')+' — тележке некуда заехать.');
+  if(c.y>H+60||c.y>brDeckY(c.x)+150)return miss==null?fail('Мост не выдержал','Тележка сорвалась в пропасть. Добавь треугольников — они держат лучше.'):fail('Мост не доходит до болта','Дорога не прицеплена к болту '+(pil(miss)?'на столбе':'на том берегу')+' — тележке некуда заехать.');
   if(c.x>c.best+.5){c.best=c.x;c.still=0}else if(++c.still>360){
     const j=st.find(j=>A[j][0]>c.x-20); // ближайший болт впереди
     const near=j!=null&&Math.abs(c.x-A[j][0])<80&&c.y>A[j][1]+CR/2; // стоит под болтом у стены обрыва/столба
@@ -422,6 +467,7 @@ function brSteep(x,y){ // крутая палка прямо перед заст
   for(const b of bars){const a=nodes[b.a],e=nodes[b.b];if(isSteep(a,e)&&Math.max(a.x,e.x)>x-10&&Math.min(a.x,e.x)<x+CR+40&&Math.max(a.y,e.y)>y-60&&Math.min(a.y,e.y)<y+CR+10)return true}
   return false}
 function bridgeWin(){
+  sfx('win');
   const k=used,st=starsFor(k,par),inf=!!prog.inf,B=prog.bridge,old=Math.min(3,B.stars[bIdx]|0),first=bIdx+1>B.best;
   if(!inf)B.stars[bIdx]=Math.max(old,st);
   const gain=(first?10:0)+(inf?0:5*Math.max(0,st-old));prog.coins+=gain;if(first)B.best=bIdx+1;saveProg();updCnt();
@@ -457,23 +503,27 @@ function drawBridge(nr){
     for(const[dx,dy]of[[-1,-1],[1,-1],[-1,1],[1,1]]){const x=n.x+dx*s*.62,y=n.y+dy*s*.62;ctx.moveTo(x+s*.18,y);ctx.arc(x,y,s*.18,0,7)}ctx.fill();
     ctx.fillStyle='#5b636e';ctx.beginPath();ctx.arc(n.x,n.y,s*.34,0,7);ctx.fill()}
   if(cart){const c=cart;ctx.save();ctx.translate(c.x,c.y);ctx.rotate(c.ang);
-    ctx.fillStyle='#6b6f76';ctx.beginPath();for(const[x,y,r]of[[-6,-15,5],[2,-17,6],[9,-14,4.5]]){ctx.moveTo(x+r,y);ctx.arc(x,y,r,0,7)}ctx.fill(); // груз
-    ctx.fillStyle='#b5562f';ctx.strokeStyle='#4a2414';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-17,-11);ctx.lineTo(17,-11);ctx.lineTo(13,5);ctx.lineTo(-13,5);ctx.closePath();ctx.fill();ctx.stroke();
+    const heavy=(BL.cm||CM)>CM; // тяжёлая тележка: синяя, груза больше
+    ctx.fillStyle='#6b6f76';ctx.beginPath();for(const[x,y,r]of heavy?[[-11,-15,5],[-3,-18,6.5],[6,-16,6],[13,-13,4.5],[2,-24,4.5]]:[[-6,-15,5],[2,-17,6],[9,-14,4.5]]){ctx.moveTo(x+r,y);ctx.arc(x,y,r,0,7)}ctx.fill(); // груз
+    ctx.fillStyle=heavy?'#2f6db5':'#b5562f';ctx.strokeStyle=heavy?'#173a66':'#4a2414';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-17,-11);ctx.lineTo(17,-11);ctx.lineTo(13,5);ctx.lineTo(-13,5);ctx.closePath();ctx.fill();ctx.stroke();
     ctx.fillStyle='rgba(255,255,255,.25)';ctx.fillRect(-15,-9,30,3);
     for(const wx of[-9,9]){ctx.fillStyle='#22252a';ctx.beginPath();ctx.arc(wx,8,6,0,7);ctx.fill();ctx.strokeStyle='#c9d1db';ctx.lineWidth=1.5;ctx.beginPath();
       for(let q=0;q<2;q++){const t=c.rot+q*Math.PI/2;ctx.moveTo(wx+Math.cos(t)*4.5,8+Math.sin(t)*4.5);ctx.lineTo(wx-Math.cos(t)*4.5,8-Math.sin(t)*4.5)}ctx.stroke()}
     ctx.restore()}
   if(bIdx===0&&!testing&&ballsUsed()<3){ctx.fillStyle=inkA(1);ctx.font='600 30px Caveat, cursive';ctx.textAlign='center';const a=BL.anc[0],b=BL.anc[1],mx=(a[0]+b[0])/2;
     ctx.fillText('строй от болтов к болтам,',mx,a[1]-150);ctx.fillText('потом жми «▶ Проверить»',mx,a[1]-115);ctx.textAlign='start'}
+  if(BL.note&&!testing&&ballsUsed()<4&&!(prog.bridge.stars[bIdx]>0)){ctx.fillStyle=inkA(1);ctx.font='600 30px Caveat, cursive';ctx.textAlign='center';const a=BL.anc[0],b=BL.anc[1],mx=(a[0]+b[0])/2,y=BL.o?Math.max(a[1],b[1])+175:Math.min(a[1],b[1])-150; // под скалой места нет — подсказка под пролётом
+    ctx.fillText(BL.note[0],mx,y);ctx.fillText(BL.note[1],mx,y+35);ctx.textAlign='start'} // особенность моста: о ней — пока шариков мало
   if(bIdx===BIG_GAP&&!testing&&ballsUsed()<4&&!(prog.bridge.stars[bIdx]>0)){ctx.fillStyle=inkA(1);ctx.font='600 30px Caveat, cursive';ctx.textAlign='center';const a=BL.anc[0],b=BL.anc[1],mx=(a[0]+b[0])/2;
     ctx.fillText('строй с двух берегов навстречу —',mx,a[1]-150);ctx.fillText('так мост не провиснет',mx,a[1]-115);ctx.textAlign='start'}
 }
-const ballsUsed=()=>endless||bridge?used:nodes.length; // мосты: считаем поставленные шарики — упавшие в пропасть не возвращаются
+const ballsUsed=()=>endless||bridge?used:nodes.reduce((s,n)=>s+(n.st?2:1),0); // мосты: считаем поставленные шарики — упавшие в пропасть не возвращаются
 const BIG_GAP=BLEVELS.findIndex(B=>B.p.some((q,k)=>k&&q[0]-B.p[k-1][1]>=500)); // первый мост с пролётом ≥500: подсказка строить с двух берегов
 function levelName(i){return i<LEVELS.length?LEVELS[i].name:genLevel(i).name}
 // норма шариков: уровни 1–12 — сколько потратил прежний бот-строитель; 13–150 — бот tools/bot.js ×1.1 (tools/par.js); дальше — оценка по длине и подъёму
 const PAR=[9,12,12,12,15,12,18,17,21,13,18,18,18,9,8,11,14,15,8,19,17,20,8,18,11,13,9,10,23,17,23,22,21,28,18,22,25,10,8,18,17,20,23,23,20,20,17,15,15,18,26,21,12,20,25,19,24,15,18,30,11,17,20,10,21,23,17,21,11,20,13,14,26,17,23,21,18,14,15,15,17,20,18,19,20,23,11,21,10,21,22,17,30,19,22,21,29,14,26,22,13,20,14,29,21,15,12,23,14,22,26,15,15,22,12,23,23,10,22,18,14,17,30,29,15,14,29,15,12,24,21,19,29,13,19,22,21,17,15,11,21,22,13,14,21,19,19,21,14,15];
-function parFor(i){const v=PAR[i];if(v)return Math.min(v,30);const L=i<LEVELS.length?LEVELS[i]:genLevel(i),q=L.p;
+function parFor(i){const v=PAR[i];return v?Math.min(v,30):parEst(i<LEVELS.length?LEVELS[i]:genLevel(i))}
+function parEst(L){const q=L.p;
   // оценка по длине и подъёму (подобрана по результатам бота на уровнях 13–150): шипы на краю — тянуться дальше, скала — мост пониже, остров — лишняя опора
   const n=k=>q.filter(e=>e[3]&&e[3][k]).length;
   return Math.min(30,Math.round(.0167*(q[q.length-1][0]-L.start)+.0082*Math.max(0,q[0][2]-q[q.length-1][2])+2*n('spk')+.7*(L.o||[]).length-.5*n('h')+2.2))}
@@ -482,7 +532,9 @@ function starsFor(k,par){return k<=par?3:k<=par+Math.ceil(par*.3)?2:1}
 const cv=document.getElementById('c'),ctx=cv.getContext('2d');
 let lvlIdx=0,L,terrain,goalX,goalTop,nodes,bars,ghost=null,hover=null,won=false,lost=false,t0=0,winT=0,hist=[];
 let cpJ=-1,debris=[],broken=0,par=0,limit=0,cps=[],cp=0,cpT=0,cpSnap=null,toast=null,camX=null,minX=0,maxX=W;
-const COIN_BONUS=5;
+const COIN_BONUS=5,DAILY_BONUS=15,STEEL_K=2.2,STEEL_M=2; // сталь: палки крепче в STEEL_K раз, шарик тяжелее в STEEL_M раз и стоит 2
+let mat='w';const matCost=()=>mat==='s'?2:1; // материал следующего шарика: w — дерево, s — сталь
+function setMat(m){mat=m;const b=$('mat');b.classList.toggle('steel',m==='s');b.querySelector('.lbl').textContent=m==='s'?' Сталь':' Дерево';b.setAttribute('aria-pressed',m==='s')}let special=null,coinKey=null,hintP=null; // hintP — показанная подсказка (куда поставить шарик)
 // goalR — площадка-цель; coin — бонусная монетка уровня; pops — вспышки лопнувших шариков и взятой монетки;
 // hintK — подсказка про новинку уровня; spiky — есть ли на уровне шипы
 let goalR=null,coin=null,pops=[],hintK=null,spiky=false;
@@ -499,11 +551,13 @@ const UNLOCK_INF=50; // после 50 пройденных уровней отк
 function parseBr(o){const r={best:0,cur:0,stars:{}};if(o&&typeof o==='object'){r.best=Math.max(0,Math.min(BLEVELS.length,o.best|0));r.cur=Math.max(0,Math.min(r.best,BLEVELS.length-1,o.cur|0));
   if(o.stars&&typeof o.stars==='object'&&!Array.isArray(o.stars))for(let i=0;i<BLEVELS.length;i++){const v=Math.max(0,Math.min(3,Math.floor(+o.stars[i]||0)));if(v)r.stars[i]=v}}return r} // прогресс мостов
 const plainObj=o=>o&&typeof o==='object'&&!Array.isArray(o)?o:{};
-let prog={best:0,cur:0,stars:{},inf:false,skin:'classic',coins:0,owned:['classic'],set:{anim:true,legend:true,zone:true},bridge:parseBr(),mode:'lv',seen:{},bonus:{}};
+function parseDaily(o){o=plainObj(o);const n=v=>Math.max(0,Math.min(1e9,v|0));return{d:n(o.d),best:n(o.best),done:o.done===true,streak:n(o.streak),last:n(o.last)}}
+function parseCustom(a){return(Array.isArray(a)?a:[]).filter(c=>c&&typeof c.c==='string'&&c.c.length<4000).slice(0,50).map(c=>({n:String(c.n||'Мой уровень').slice(0,40),c:c.c,b:Math.max(0,c.b|0)}))}
+let prog={best:0,cur:0,stars:{},inf:false,skin:'classic',coins:0,owned:['classic'],set:{sound:true,anim:true,legend:true,zone:true},bridge:parseBr(),mode:'lv',seen:{},bonus:{},daily:parseDaily(),custom:[],hints:3};
 try{const v=JSON.parse(localStorage.getItem(SK)||'null');if(v&&Number.isInteger(v.best)&&Number.isInteger(v.cur)){const b=Math.min(10000,Math.max(0,v.best));prog={best:b,cur:Math.max(0,Math.min(v.cur,b)),stars:(v.stars&&typeof v.stars==='object'&&!Array.isArray(v.stars))?v.stars:{},inf:v.inf===true&&b>=UNLOCK_INF,endless:Math.max(0,Math.min(1e6,v.endless|0)),skin:typeof v.skin==='string'?v.skin:'classic',
     coins:Number.isFinite(v.coins)?Math.max(0,Math.min(1e9,v.coins|0)):null,
     owned:Array.isArray(v.owned)?v.owned.filter(k=>typeof k==='string'):null,
-    set:Object.assign({anim:true,legend:true,zone:true},v.set&&typeof v.set==='object'?v.set:{}),bridge:parseBr(v.bridge),mode:v.mode==='br'?'br':'lv',seen:plainObj(v.seen),bonus:plainObj(v.bonus)};
+    set:Object.assign({sound:true,anim:true,legend:true,zone:true},v.set&&typeof v.set==='object'?v.set:{}),bridge:parseBr(v.bridge),mode:v.mode==='br'?'br':'lv',seen:plainObj(v.seen),bonus:plainObj(v.bonus),daily:parseDaily(v.daily),custom:parseCustom(v.custom),hints:Number.isInteger(v.hints)?Math.max(0,Math.min(99,v.hints)):3};
   // старые сохранения без монет: начисляем за уже пройденное, выбранный скин оставляем купленным
   if(prog.coins===null){let c=0;for(let i=0;i<prog.best;i++)c+=10+5*Math.min(3,Math.max(0,prog.stars[i]|0));prog.coins=c}
   if(!prog.owned)prog.owned=['classic']}}catch(e){console.error('progress parse',e);try{const raw=localStorage.getItem(SK);if(raw)localStorage.setItem(SK+'.bak',raw)}catch(_){}}
@@ -512,21 +566,33 @@ document.addEventListener('contextmenu',e=>e.preventDefault());
 
 function load(i){
   if(!Number.isFinite(i))return loadEndless();
-  leaveBridge();endless=false;originRect=null;passed=[];themeSeed=i;
-  lvlIdx=i; L=i<LEVELS.length?LEVELS[i]:genLevel(i);
+  leaveBridge();special=null;themeSeed=i;lvlIdx=i;
   prog.cur=i;if(i>prog.best)prog.best=i;saveProg();
-  par=parFor(i);limit=prog.inf?Infinity:limitFor(par);TH=THEMES[themeIdx(i)];makeSky();document.body.style.background=TH.sky[0];
+  par=parFor(i);setupLevel(i<LEVELS.length?LEVELS[i]:genLevel(i),themeIdx(i),i);
+  $('lvl').textContent='Уровень '+(i+1)+' · '+L.name; updCnt();
+}
+// особый уровень — уровень дня или свой: {kind:'daily'|'custom', L, title, seed, coinKey?, day?, idx?, edit?}
+function loadSpecial(sp){
+  leaveBridge();special=sp;themeSeed=sp.seed;par=parEst(sp.L);setupLevel(sp.L,themeIdx(sp.seed),sp.coinKey??null);
+  $('lvl').textContent=sp.title;updCnt();
+}
+function restart(){clearTimeout(t0);thinking=null;bridge?loadBridge(bIdx):endless?loadEndless():special?loadSpecial(special):load(lvlIdx)}
+// общая часть загрузки уровня из описания; coinKey — ключ бонусной монетки в прогрессе (null — монетка без награды)
+function setupLevel(Lv,th,ck){
+  endless=false;originRect=null;passed=[];L=Lv;coinKey=ck;hintP=null;setMat('w');
+  limit=prog.inf?Infinity:limitFor(par);TH=THEMES[th];makeSky();document.body.style.background=TH.sky[0];
   terrain=L.p.map(mkRect);
   const g=terrain[terrain.length-1]; goalR=g; goalX=g.x; goalTop=g.y;
   cps=terrain.slice(1,-1).filter(r=>r.k!=='pit');cp=0;cpT=0;cpJ=-1;cpSnap=null;toast=null;
   if(L.o)for(const q of L.o)terrain.push(mkRock(q));
-  coin=L.coin&&!prog.bonus[i]?{x:L.coin[0],y:L.coin[1]}:null;pops=[];spiky=terrain.some(r=>r.spk);
+  coin=L.coin&&!(ck!=null&&prog.bonus[ck])?{x:L.coin[0],y:L.coin[1]}:null;pops=[];spiky=terrain.some(r=>r.spk);
   hintK=levelHint();
-  const x=L.start,gy=terrain[0].y; nodes=[];bars=[];hist=[];winT=0;debris=[];broken=0;
-  minX=x-260;maxX=goalX+320;camX=null;
-  addNode(x,gy-R);used=1;
+  // первый шарик — на площадке под стартом (в своих уровнях старт может быть не на первой)
+  const x=L.start,sr=terrain.find(r=>!r.k&&x>=r.x&&x<=r.x+r.w)||terrain.find(r=>r.k==='isl'&&x>=r.x&&x<=r.x+r.w)||terrain[0];
+  nodes=[];bars=[];hist=[];winT=0;debris=[];broken=0;
+  minX=Math.min(x,L.p[0][0]>-500?L.p[0][0]:x)-260;maxX=goalX+320;camX=null;
+  addNode(x,sr.y-R);used=1;
   won=lost=false; $('ov').hidden=true;
-  $('lvl').textContent='Уровень '+(i+1)+' · '+L.name; updCnt();
 }
 const HINTS={isl:['летающий остров —','на него можно опереться'],pit:['на дне ямы шипы —','шарик там лопнет'],spk:['осторожно, шипы!','дотянись подальше'],
   rock:['скала сверху —','строй мост пониже'],coin:['монетка! дотянись','шариком: +'+COIN_BONUS]};
@@ -580,14 +646,16 @@ function dropNodes(pred){
   bars=bars.filter(b=>map[b.a]>=0&&map[b.b]>=0);for(const b of bars){b.a=map[b.a];b.b=map[b.b]}
 }
 function step(){
-  if(anyScreen())return; // пауза, пока открыто меню
+  if(!sim&&(anyScreen()||thinking||ed))return; // пауза, пока открыто меню или считается подсказка (сам расчёт идёт всегда)
   for(const n of nodes){
     const vx=(n.x-n.px)*.993,vy=(n.y-n.py)*.993;n.px=n.x;n.py=n.y;n.x+=vx;n.y+=vy+G;n.g=false;n.on=null;
   }
   if(bridge)brPre();
   hitY0=Infinity;for(const r of terrain)if(r.y<hitY0)hitY0=r.y;
   for(let k=0;k<ITER;k++){
-    if(bridge)brBars();else for(const b of bars){const a=nodes[b.a],c=nodes[b.b];const dx=c.x-a.x,dy=c.y-a.y,d=Math.hypot(dx,dy)||1e-6,f=(d-b.len)/d*.5;a.x+=dx*f;a.y+=dy*f;c.x-=dx*f;c.y-=dy*f}
+    if(bridge)brBars();else for(const b of bars){const a=nodes[b.a],c=nodes[b.b];const dx=c.x-a.x,dy=c.y-a.y,d=Math.hypot(dx,dy)||1e-6,f=(d-b.len)/d*.5;
+      if(a.m||c.m){const wa=1/(a.m||1),wc=1/(c.m||1),ka=2*f*wa/(wa+wc),kc=2*f*wc/(wa+wc);a.x+=dx*ka;a.y+=dy*ka;c.x-=dx*kc;c.y-=dy*kc}
+      else{a.x+=dx*f;a.y+=dy*f;c.x-=dx*f;c.y-=dy*f}}
     for(const b of bars)barHit(b);
     for(const n of nodes)collide(n);
     if(bridge)brIter();
@@ -596,28 +664,32 @@ function step(){
   // упавшее далеко в пропасть убираем вместе с палками (история хранит полные снимки, её не трогаем)
   if(nodes.some(n=>n.y>1600)){dropNodes(n=>n.y>1600);updCnt()}
   // шипы: опустившийся в них шарик лопается, его палки падают обломками
-  if(spiky&&nodes.some(n=>terrain.some(r=>onSpikes(n,r,0)))){
-    const del=nodes.map(n=>terrain.some(r=>onSpikes(n,r,0)));
+  if(spiky&&nodes.some(n=>!n.pin&&terrain.some(r=>onSpikes(n,r,0)))){
+    const del=nodes.map(n=>!n.pin&&terrain.some(r=>onSpikes(n,r,0)));
     for(const b of bars)if(del[b.a]||del[b.b]){const a=nodes[b.a],c=nodes[b.b];debris.push({x1:a.x,y1:a.y,x2:c.x,y2:c.y,vx:(Math.random()-.5)*2,vy:-1.5,r:0,vr:(Math.random()-.5)*.2,life:60})}
     nodes.forEach((n,i)=>{if(del[i])pops.push({x:n.x,y:n.y,life:24})});
-    dropNodes((n,i)=>del[i]);toast={t:'Пш-ш! Шарик лопнул на шипах',life:120,bad:true};updCnt();
+    dropNodes((n,i)=>del[i]);toast={t:'Пш-ш! Шарик лопнул на шипах',life:120,bad:true};sfx('pop');updCnt();
   }
   for(const q of pops)q.life--;if(pops.length)pops=pops.filter(q=>q.life>0);
-  if(coin&&!won&&!lost&&nodes.some(n=>(n.x-coin.x)**2+(n.y-coin.y)**2<(R+13)**2)){ // бонусная монетка: один раз на уровень
-    prog.coins+=COIN_BONUS;prog.bonus[lvlIdx]=1;saveProg();pops.push({x:coin.x,y:coin.y,life:30,gold:true});coin=null;
-    toast={t:'Бонусная монетка! +'+COIN_BONUS+' монет',life:150};
+  if(coin&&!won&&!lost&&!sim&&nodes.some(n=>(n.x-coin.x)**2+(n.y-coin.y)**2<(R+13)**2)){ // бонусная монетка: один раз на уровень
+    if(coinKey!=null){prog.coins+=COIN_BONUS;prog.bonus[coinKey]=1;saveProg()}pops.push({x:coin.x,y:coin.y,life:30,gold:true});coin=null;
+    toast={t:coinKey!=null?'Бонусная монетка! +'+COIN_BONUS+' монет':'Монетка!',life:150};sfx('coin');
   }
-  if(bridge)brStrain();else for(const b of bars){const a=nodes[b.a],c=nodes[b.b];b.s=Math.abs(Math.hypot(c.x-a.x,c.y-a.y)-b.len)/b.len;b.o=b.s>BREAK?(b.o||0)+1:Math.max(0,(b.o||0)-2)}
+  if(bridge)brStrain();else for(const b of bars){const a=nodes[b.a],c=nodes[b.b];b.s=Math.abs(Math.hypot(c.x-a.x,c.y-a.y)-b.len)/b.len/(b.st?STEEL_K:1);b.o=b.s>BREAK?(b.o||0)+1:Math.max(0,(b.o||0)-2)}
   // перегруженные палки лопаются: обломки падают, конструкция живёт дальше без них
   if(bars.some(b=>b.o>=BREAK_T)){
     bars=bars.filter(b=>{if(b.o<BREAK_T)return true;const a=nodes[b.a],c=nodes[b.b],mx=(a.x+c.x)/2,my=(a.y+c.y)/2;
       for(const [p,q] of [[a,{x:mx,y:my}],[{x:mx,y:my},c]])debris.push({x1:p.x,y1:p.y,x2:q.x,y2:q.y,vx:(Math.random()-.5)*3,vy:-1-Math.random()*2,r:0,vr:(Math.random()-.5)*.2,life:70});
       broken++;return false});
-    toast={t:'Хрусь! Палка не выдержала нагрузки',life:120,bad:true};
+    toast={t:'Хрусь! Палка не выдержала нагрузки',life:120,bad:true};sfx('crack');
   }
   for(const d of debris){d.vy+=G;const cx=(d.x1+d.x2)/2+d.vx,cy=(d.y1+d.y2)/2+d.vy,hx=(d.x2-d.x1)/2,hy=(d.y2-d.y1)/2,c=Math.cos(d.vr),s=Math.sin(d.vr);
     const nx=hx*c-hy*s,ny=hx*s+hy*c;d.x1=cx-nx;d.y1=cy-ny;d.x2=cx+nx;d.y2=cy+ny;d.life--}
   debris=debris.filter(d=>d.life>0);
+  if(sim){ // расчёт подсказки: только «упало» и «дошло» (до цели или до следующего флажка), без флажков, сообщений и прогресса
+    const tg=endless?cps[cp]:goalR;
+    if(!nodes.length||nodes.some(n=>n.y>H+60))lost=true;else if(tg&&nodes.some(n=>n.on===tg&&(endless||n.x>goalX+R)))winT++;
+    return}
   if(bridge){if(!won&&!lost)bridgeCheck()}
   else if(!won&&!lost){
     const goal=goalR;
@@ -625,20 +697,22 @@ function step(){
       let j=-1;for(let q=cps.length-1;q>=cp;q--)if(nodes.some(n=>n.on===cps[q])){j=q;break}
       const calm=nodes.every(n=>Math.abs(n.x-n.px)+Math.abs(n.y-n.py)<.8);
       if(j!==cpJ)cpT=0;cpJ=j;cpT=j>=0&&calm?cpT+1:0;
-      if(cpT>=60&&endless){const P=cps[j],n0=j+1-cp;cp=j+1;cpT=0;endlessFlag(P,n0);cpSnap=snap();cpSnap.b.forEach(b=>{b.o=0});hist=[];updCnt()}
-      else if(cpT>=60){cp=j+1;cpT=0;cpSnap=snap();cpSnap.b.forEach(b=>{b.o=0});hist=[];toast={t:'Флажок '+cp+' из '+cps.length+' — отсюда можно продолжить',life:150};updCnt()}
+      if(cpT>=60&&endless){const P=cps[j],n0=j+1-cp;cp=j+1;cpT=0;sfx('flag');endlessFlag(P,n0);cpSnap=snap();cpSnap.b.forEach(b=>{b.o=0});hist=[];updCnt()}
+      else if(cpT>=60){cp=j+1;cpT=0;sfx('flag');cpSnap=snap();cpSnap.b.forEach(b=>{b.o=0});hist=[];toast={t:'Флажок '+cp+' из '+cps.length+' — отсюда можно продолжить',life:150};updCnt()}
     }
     winT=nodes.some(n=>n.on===goal&&n.x>goalX+R)?winT+1:0; // стоит на целевом берегу ~1 с
     if(endless)winT=0;
     if(winT>=60){won=true;winMsg()}
-    else if(!nodes.length||nodes.some(n=>n.y>H+60)){lost=true;
-      if(cpSnap)show('Сорвалось!',endless?'Флажков: '+flags+(prog.endless&&!prog.inf?' (рекорд '+prog.endless+')':'')+'. Продолжить с последнего флажка или начать путь заново?':'Можно продолжить с флажка '+cp+' или начать уровень заново.','С флажка',restoreCp,'Заново',()=>endless?loadEndless():load(lvlIdx));
-      else show('Сорвалось!','Конструкция падает в пропасть. Держи противовес на берегу или отмени ход.','Заново',()=>endless?loadEndless():load(lvlIdx))}
+    else if(!nodes.length||nodes.some(n=>n.y>H+60)){lost=true;sfx('fall');
+      if(cpSnap)show('Сорвалось!',endless?'Флажков: '+flags+(prog.endless&&!prog.inf?' (рекорд '+prog.endless+')':'')+'. Продолжить с последнего флажка или начать путь заново?':'Можно продолжить с флажка '+cp+' или начать уровень заново.','С флажка',restoreCp,'Заново',restart);
+      else show('Сорвалось!','Конструкция падает в пропасть. Держи противовес на берегу или отмени ход.','Заново',restart)}
   }
 }
 function winMsg(){
+  sfx('win');
   if(hintK){prog.seen[hintK.k]=1;hintK=null}
-  const k=nodes.length,st=starsFor(k,par),inf=!!prog.inf,oldSt=prog.stars[lvlIdx]|0,first=lvlIdx+1>prog.best;
+  if(special)return specialWin();
+  const k=ballsUsed(),st=starsFor(k,par),inf=!!prog.inf,oldSt=prog.stars[lvlIdx]|0,first=lvlIdx+1>prog.best;
   if(!inf)prog.stars[lvlIdx]=Math.max(oldSt,st);
   const gain=(first?10:0)+(inf?0:5*Math.max(0,st-oldSt));prog.coins+=gain;saveProg();
   const cTxt=gain?' +'+gain+' монет.':'';
@@ -650,8 +724,43 @@ function winMsg(){
   else show('Мост готов! '+'★'.repeat(st)+'☆'.repeat(3-st),'Шариков: '+k+(st<3?'. На три звезды нужно не больше '+par+'.':'. В норме, отлично!')+cTxt,'Дальше →',()=>load(lvlIdx+1));
   clearTimeout(t0);if(!unlocked)t0=setTimeout(()=>{if(won)load(lvlIdx+1)},1800);
 }
-function show(t,p,b,fn,b2,fn2){$('ovT').textContent=t;$('ovP').textContent=p;$('ovB').textContent=b;$('ovB').onclick=()=>{clearTimeout(t0);fn()};
-  const B2=$('ovB2');B2.hidden=!b2;if(b2){B2.textContent=b2;B2.onclick=()=>{clearTimeout(t0);fn2()}}$('ov').hidden=false}
+function show(t,p,b,fn,b2,fn2,b3,fn3){$('ovT').textContent=t;$('ovP').textContent=p;$('ovB').textContent=b;$('ovB').onclick=()=>{clearTimeout(t0);fn()};
+  for(const[B,tx,f]of[[$('ovB2'),b2,fn2],[$('ovB3'),b3,fn3]]){B.hidden=!tx;if(tx){B.textContent=tx;B.onclick=()=>{clearTimeout(t0);f()}}}$('ov').hidden=false}
+// ---- уровень дня: один на всех по дате, рекорд по шарикам, серия дней подряд
+const plural=(n,a,b,c)=>{const m=n%100,d=n%10;return m>10&&m<20?c:d===1?a:d>1&&d<5?b:c};
+const dayKey=(t=new Date())=>t.getFullYear()*10000+(t.getMonth()+1)*100+t.getDate(); // 20261003
+const MONTHS=['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+const dayLabel=d=>(d%100)+' '+MONTHS[((d/100|0)%100)-1];
+// DAILY_SALT — дни, где бот-строитель не прошёл уровень за 40 шариков: другой вариант генерации (tools/daily_check.js --reroll)
+const DAILY_SALT={};
+function dailyLevel(d){const L=genLv((Math.imul(d,0x2C1B3C6D)^Math.imul(DAILY_SALT[d]|0,0x85EBCA6B))>>>0,16,true);L.name='Уровень дня';return L}
+function openDaily(){
+  hideScreens();const d=dayKey();
+  loadSpecial({kind:'daily',day:d,L:dailyLevel(d),title:'☀ Уровень дня · '+dayLabel(d),seed:d%997,coinKey:'d'+d});
+}
+function dailySub(){const D=prog.daily,d=dayKey();
+  return D.d===d&&D.done?'пройден · рекорд '+D.best+(D.streak>1?' · серия '+D.streak:''):D.streak>0&&D.last===prevDay(d)?'серия '+D.streak+' — не прерви!':'новый каждый день'}
+function prevDay(d){const t=new Date((d/10000|0),((d/100|0)%100)-1,d%100);t.setDate(t.getDate()-1);return dayKey(t)}
+function copyText(t){ // буфер обмена: в WebView без https clipboard может не работать — запасной путь через textarea
+  const ok=()=>{toast={t:'Скопировано: '+t,life:150}};
+  try{if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(t).then(ok,()=>fallback());return}}catch(_){}
+  fallback();function fallback(){const a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0';document.body.appendChild(a);a.select();
+    let r=false;try{r=document.execCommand('copy')}catch(_){}a.remove();toast=r?{t:'Скопировано: '+t,life:150}:{t:t,life:240}}}
+function specialWin(){
+  const sp=special,k=ballsUsed(),st=starsFor(k,par),inf=!!prog.inf,stars=inf?'':' '+'★'.repeat(st)+'☆'.repeat(3-st);
+  if(sp.kind==='daily'){
+    const D=prog.daily,d=sp.day;if(D.d!==d){D.d=d;D.best=0;D.done=false}
+    let gain=0,rec=false;
+    if(!inf){rec=!D.best||k<D.best;if(rec)D.best=k;if(!D.done){gain=DAILY_BONUS;D.done=true;D.streak=D.last===prevDay(d)?D.streak+1:1;D.last=d}}
+    prog.coins+=gain;saveProg();updCnt();
+    const res='Мостостроитель · уровень дня '+dayLabel(d)+': '+k+' '+plural(k,'шарик','шарика','шариков')+stars;
+    show('Уровень дня пройден!'+stars,'Шариков: '+k+(inf?'. Режим ∞ — без рекорда.':rec&&gain===0?' — новый рекорд дня!':'. Рекорд дня: '+D.best+'.')+(gain?' +'+gain+' монет, серия: '+D.streak+'.':''),
+      'В меню',openMain,'Ещё раз',restart,'Скопировать',()=>copyText(res));
+    return;
+  }
+  const C=prog.custom[sp.idx];if(C&&!inf&&(!C.b||k<C.b)){C.b=k;saveProg()}
+  show('Уровень пройден!'+stars,'Шариков: '+k+(C&&C.b?'. Лучший результат: '+C.b+'.':'.'),sp.edit?'К редактору':'К моим уровням',sp.edit?()=>openEditor(sp.idx):openMine,'Ещё раз',restart);
+}
 
 // ---- ввод
 let sc=1,ox=0,oy=0;
@@ -660,6 +769,7 @@ const TOUCH_UP=40; // на сколько CSS-пикселей призрак в
 // камера: на широком экране в кадре ~W мировых единиц, на узком ~640; едет за передним краем конструкции
 function cam(){
   if(cw<1||ch<1||!nodes||!L)return; // до load() уровня ещё нет
+  if(ed)return edCam();
   if(bridge)return bridgeCam();
   const VW=cw/ch<W/H?640:W;
   sc=Math.max(1e-3,Math.min(cw/VW,ch/H));oy=(ch-H*sc)/2;
@@ -691,7 +801,7 @@ function candidates(p){
   const tooClose=ds.some(o=>o.d<MINL); // при tooClose ok=false, поэтому отдельный фильтр d>=MINL не нужен
   const all=ds.filter(o=>o.d<=MAXL&&!blocked(nodes[o.i],p)).sort((a,b)=>a.d-b.d),c=all.slice(0,2);
   if(bridge&&!c.some(o=>nodes[o.i].pin)){const a=all.find(o=>nodes[o.i].pin);if(a)c.push(a)} // мост: ближайший болт в досягаемости цепляется всегда (третьей палкой)
-  return{c,ok:!inside&&!tooClose&&c.length>0&&ballsUsed()<limit};
+  return{c,ok:!inside&&!tooClose&&c.length>0&&ballsUsed()+matCost()<=limit};
 }
 function blocked(a,p){ // отрезок a→p (без концов по R/2) задевает землю, раздутую на R/2
   const dx=p.x-a.x,dy=p.y-a.y,d=Math.hypot(dx,dy)||1,t0=R/2/d,t1=1-R/2/d,e=R/2;
@@ -705,21 +815,29 @@ function blocked(a,p){ // отрезок a→p (без концов по R/2) з
     return true}
   return false;
 }
-cv.addEventListener('pointerdown',e=>{if(e.button!==0||!e.isPrimary||won||lost||testing||anyScreen())return;pid=e.pointerId;try{cv.setPointerCapture(pid)}catch(_){}ghost=toWorldPtr(e)});
-cv.addEventListener('pointermove',e=>{if(ghost){if(e.pointerId===pid)ghost=toWorldPtr(e)}else if(e.pointerType==='mouse'&&e.isPrimary){const r=cv.getBoundingClientRect();hoverS={x:e.clientX-r.left,y:e.clientY-r.top};hover=toWorldPtr(e)}});
+cv.addEventListener('pointerdown',e=>{if(ed&&!anyScreen()){edDown(e);return}if(e.button!==0||!e.isPrimary||won||lost||testing||thinking||anyScreen())return;pid=e.pointerId;try{cv.setPointerCapture(pid)}catch(_){}ghost=toWorldPtr(e)});
+cv.addEventListener('pointermove',e=>{if(ed){edMove(e);return}if(ghost){if(e.pointerId===pid)ghost=toWorldPtr(e)}else if(e.pointerType==='mouse'&&e.isPrimary){const r=cv.getBoundingClientRect();hoverS={x:e.clientX-r.left,y:e.clientY-r.top};hover=toWorldPtr(e)}});
 cv.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse'){hover=null;hoverS=null}});
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 cv.addEventListener('pointerup',e=>{
-  if(!ghost||e.pointerId!==pid)return;pid=null;const p=toWorldPtr(e);const{c,ok}=candidates(p);ghost=null;if(e.pointerType==='mouse')hover=p;
-  if(ballsUsed()>=limit&&!won&&!lost){toast={t:'Шарики кончились — отмени ход или начни заново',life:150,bad:true};return}
-  if(!ok||won||lost||testing)return;hist.push(snap());const i=addNode(p.x,p.y);used++;c.forEach(o=>addBar(o.i,i));updCnt();
+  if(ed){edUp(e);return}
+  if(!ghost||e.pointerId!==pid)return;pid=null;let p=toWorldPtr(e);
+  if(hintP&&Math.hypot(p.x-hintP.x,p.y-hintP.y)<Math.max(26,16/sc))p={x:hintP.x,y:hintP.y}; // рядом с подсказкой — ровно в неё
+  const{c,ok}=candidates(p);ghost=null;if(e.pointerType==='mouse')hover=p;
+  if(ballsUsed()+matCost()>limit&&!won&&!lost){toast={t:ballsUsed()<limit?'На сталь не хватает шариков — переключись на дерево':'Шарики кончились — отмени ход или начни заново',life:150,bad:true};sfx('no');return}
+  if(!ok||won||lost||testing){if(!won&&!lost&&!testing)sfx('no');return}hist.push(snap());const i=addNode(p.x,p.y),st=mat==='s';used+=matCost();
+  if(st){nodes[i].st=1;nodes[i].m=STEEL_M}c.forEach(o=>{addBar(o.i,i);if(st)bars[bars.length-1].st=1});hintP=null;updCnt();sfx(st?'steel':'place');
   if(bridge&&!BL.steepT&&c.some(o=>{const a=nodes[o.i];return isSteep(a,p)&&deckish(a,p)})){BL.steepT=1;toast={t:'Слишком круто — тележка не заедет',life:150,bad:true}}
 });
-cv.addEventListener('pointercancel',e=>{if(pid!==null&&e.pointerId!==pid)return;pid=null;ghost=null;hover=null;hoverS=null});
-$('undo').onclick=()=>{if(bridge&&testing&&lost&&!won)retryTest(); // после проваленной проверки: сперва вернуть мост
-  if(won||testing||!hist.length)return;const h=hist.pop();nodes=h.n;if(h.u!=null)used=h.u;bars=h.b.filter(b=>b.a<nodes.length&&b.b<nodes.length);lost=false;winT=0;cpT=0;$('ov').hidden=true;updCnt()};
-$('reset').onclick=()=>{clearTimeout(t0);bridge?loadBridge(bIdx):endless?loadEndless():load(lvlIdx)};
+cv.addEventListener('pointercancel',e=>{if(ed){ed.drag=null;pid=null;return}if(pid!==null&&e.pointerId!==pid)return;pid=null;ghost=null;hover=null;hoverS=null});
+$('undo').onclick=()=>{thinking=null;hintP=null;if(bridge&&testing&&lost&&!won)retryTest(); // после проваленной проверки: сперва вернуть мост
+  if(won||testing||!hist.length)return;sfx('undo');const h=hist.pop();nodes=h.n;if(h.u!=null)used=h.u;bars=h.b.filter(b=>b.a<nodes.length&&b.b<nodes.length);lost=false;winT=0;cpT=0;$('ov').hidden=true;updCnt()};
+$('reset').onclick=restart;
 $('test').onclick=()=>startTest();
+$('hintB').onclick=startHint;
+$('mat').onclick=()=>{setMat(mat==='s'?'w':'s');
+  toast={t:mat==='s'?'Сталь: палки в 2 раза крепче, но шарик тяжелее и стоит 2':'Дерево: обычные палки, шарик стоит 1',life:mat==='s'&&!prog.seen.steel?240:110};
+  if(mat==='s'&&!prog.seen.steel){prog.seen.steel=1;saveProg()}};
 // ---- меню уровней: пройденные + следующий открытый
 function openMenu(){
   hideScreens();const box=$('lvList');box.textContent='';
@@ -732,20 +850,116 @@ function openMenu(){
   show1('lvOv');
   (box.querySelector('.cur')||box.lastChild).scrollIntoView({block:'nearest'});$('lvClose').focus({preventScroll:true});
 }
-$('menu').onclick=()=>{if(!$('ov').hidden)return;anyScreen()?hideScreens():openMain()};
+$('menu').onclick=()=>{thinking=null;if(!$('ov').hidden)return;anyScreen()?hideScreens():openMain()};
 // системная «Назад» в Android: закрыть меню, если открыто (true — обработано)
-window.__back=()=>{if(!$('lvOv').hidden||!$('brOv').hidden||!$('shop').hidden||!$('set').hidden){openMain();return true}if(!$('mm').hidden)return false;if(!$('ov').hidden){if(bridge&&preTest)retryTest();return true}openMain();return true};
+window.__back=()=>{if(!$('codeOv').hidden){openMine();return true}if(!$('myOv').hidden){openMain();return true}if(ed&&!anyScreen()){edDone(false);return true}if(!$('lvOv').hidden||!$('brOv').hidden||!$('shop').hidden||!$('set').hidden){openMain();return true}if(!$('mm').hidden)return false;if(!$('ov').hidden){if(bridge&&preTest)retryTest();return true}openMain();return true};
 $('inf').onclick=()=>{if(prog.best<UNLOCK_INF||!$('ov').hidden)return;prog.inf=!prog.inf;saveProg();limit=prog.inf?Infinity:endless?E_START+E_BONUS*flags:limitFor(par);updCnt();
   toast={t:prog.inf?'Режим ∞: шариков сколько угодно, звёзды не начисляются':'Обычный режим: лимит '+limit+' шариков',life:150,bad:!prog.inf&&ballsUsed()>=limit}};
+// ---- редактор уровней: земля, острова, шипы, скалы, монетка, старт; уровень сохраняется в «Мои уровни» и делится кодом
+const ED_TOOLS=[['ground','Земля'],['isl','Остров'],['spk','Шипы'],['rock','Скала'],['coin','Монетка'],['start','Старт'],['erase','Ластик'],['pan','Сдвиг']];
+const ED_TIPS={ground:'Земля: проведи пальцем вбок — площадка от этой высоты до низа',isl:'Остров: проведи вбок на нужной высоте',spk:'Шипы: проведи по верху площадки',
+  rock:'Скала: проведи вбок — это её нижний край',coin:'Монетка: нажми, где ей висеть',start:'Старт: нажми на площадку, где начнётся мост',erase:'Ластик: нажми на то, что убрать',pan:'Сдвиг: тяни поле влево-вправо'};
+let ed=null; // {idx, E — описание уровня (как в игре, но крайние площадки не растянуты), tool, hist, cam, drag, top}
+const snap10=v=>Math.round(v/10)*10,clampV=(v,a,b)=>Math.max(a,Math.min(b,v));
+const b64e=t=>btoa(unescape(encodeURIComponent(t))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const b64d=t=>decodeURIComponent(escape(atob(t.replace(/-/g,'+').replace(/_/g,'/'))));
+const hashStr=t=>{let h=0;for(let i=0;i<t.length;i++)h=(Math.imul(h,31)+t.charCodeAt(i))>>>0;return h};
+// код уровня: MS1 + base64 от JSON, координаты делённые на 5; площадка — [x0,x1,y, толщина острова, яма, шипы от, шипы до]
+function encLevel(E){const r=v=>Math.round(v/5);
+  const o={p:E.p.map(q=>{const f=q[3]||{},e=[r(q[0]),r(q[1]),r(q[2])];if(f.h||f.pit||f.spk)e.push(f.h?r(f.h):0);if(f.pit)e.push(1);else if(f.spk)e.push(0,r(f.spk[0]),r(f.spk[1]));return e}),s:r(E.start)};
+  if(E.o&&E.o.length)o.o=E.o.map(q=>q.map(r));if(E.coin)o.c=E.coin.map(r);return'MS1'+b64e(JSON.stringify(o))}
+function decLevel(code){ // разбор и проверка кода (код мог прийти от кого угодно — все числа зажимаем в разумные пределы)
+  try{code=String(code).replace(/\s+/g,'');if(!code.startsWith('MS1')||code.length>6000)return null;const o=JSON.parse(b64d(code.slice(3)));
+    const n=(v,a,b)=>{v=+v*5;if(!Number.isFinite(v))throw 0;return clampV(Math.round(v),a,b)};
+    if(!o||!Array.isArray(o.p)||!o.p.length||o.p.length>40)return null;
+    const p=o.p.map(e=>{if(!Array.isArray(e))throw 0;const x0=n(e[0],-700,6000),x1=n(e[1],-700,6000),y=n(e[2],60,600);if(x1-x0<20)throw 0;const q=[x0,x1,y],f={},h=e[3]?n(e[3],30,160):0;
+      if(h)f.h=h;if(e[4])f.pit=1;else if(e.length>6){const a=n(e[5],x0,x1),b=n(e[6],x0,x1);if(b-a>=10)f.spk=[a,b]}if(Object.keys(f).length)q.push(f);return q});
+    const E={p,start:n(o.s,-700,6000)};
+    if(Array.isArray(o.o))E.o=o.o.slice(0,20).filter(Array.isArray).map(q=>[n(q[0],-700,6000),n(q[1],-700,6000),n(q[2],-200,600)]).filter(q=>q[1]-q[0]>=20);
+    if(Array.isArray(o.c))E.coin=[n(o.c[0],-700,6000),n(o.c[1],-200,600)];return E}catch(_){return null}}
+function edLevel(E){ // описание -> уровень: площадки слева направо, крайняя левая и правая (если это земля) уходят за край
+  const p=E.p.map(q=>q.map(v=>Array.isArray(v)?v.slice():typeof v==='object'?{...v,spk:v.spk&&v.spk.slice()}:v)).sort((a,b)=>a[0]-b[0]);
+  const land=q=>!(q[3]&&(q[3].h||q[3].pit));
+  if(p.length&&land(p[0]))p[0][0]=Math.min(p[0][0],-600);const z=p[p.length-1];if(z&&land(z))z[1]=Math.max(z[1],z[0]+FAR);
+  const L={name:'Мой уровень',p,start:E.start};if(E.o&&E.o.length)L.o=E.o.map(q=>q.slice());if(E.coin)L.coin=E.coin.slice();return L}
+function edCheck(L){if(L.p.filter(q=>!(q[3]&&q[3].pit)).length<2)return'Нужно хотя бы две площадки: старт и финиш';
+  const g=L.p[L.p.length-1];if(g[3]&&g[3].pit)return'Финиш — самая правая площадка, она не может быть ямой с шипами';
+  const on=L.p.find(q=>!(q[3]&&q[3].pit)&&L.start>=q[0]&&L.start<=q[1]);if(!on)return'Поставь старт на площадку (инструмент «Старт»)';
+  if(on===g)return'Старт на финишной площадке — поставь его левее';return null}
+function edShow(){ // описание из редактора — на поле, без физики
+  const Lv=edLevel(ed.E);L=Lv;terrain=Lv.p.map(mkRect);goalR=terrain.length>1?terrain[terrain.length-1]:null;goalX=goalR?goalR.x:1e9;goalTop=goalR?goalR.y:0;
+  cps=terrain.slice(1,-1).filter(r=>r.k!=='pit');cp=0;cpT=0;cpJ=-1;passed=[];if(Lv.o)for(const q of Lv.o)terrain.push(mkRock(q));
+  coin=Lv.coin?{x:Lv.coin[0],y:Lv.coin[1]}:null;spiky=false;hintK=null;hintP=null;won=lost=false;toast=toast&&toast.ed?toast:null;
+  const x=Lv.start,sr=terrain.find(r=>r.k!=='rock'&&r.k!=='pit'&&x>=r.x&&x<=r.x+r.w);
+  nodes=sr?[{x,y:sr.y-R,px:x,py:sr.y-R,g:false,on:null}]:[];bars=[];debris=[];pops=[];hist=[];minX=-1e9;maxX=1e9}
+function openEditor(i){
+  const md=prog.mode;hideScreens();leaveBridge();prog.mode=md;special=null;endless=false;clearTimeout(t0);thinking=null; // режим (уровни/мосты) — вернётся после редактора
+  if(i<0){if(prog.custom.length>=50){toast={t:'Уже 50 уровней — удали лишние',life:150,bad:true};openMine();return}
+    prog.custom.push({n:'Мой уровень '+(prog.custom.length+1),c:encLevel({p:[[-600,300,480],[700,2300,420]],start:150}),b:0});saveProg();i=prog.custom.length-1}
+  const E=decLevel(prog.custom[i].c)||{p:[[-600,300,480],[700,2300,420]],start:150};
+  ed={idx:i,E,tool:'ground',hist:[],cam:-200,drag:null,top:60};TH=THEMES[0];themeSeed=0;makeSky();document.body.style.background=TH.sky[0];
+  document.body.classList.add('editing');$('edBar').hidden=false;$('ov').hidden=true;edTool('ground');edShow();
+  requestAnimationFrame(()=>{if(ed)ed.top=$('edBar').getBoundingClientRect().bottom-cv.getBoundingClientRect().top})}
+function edTool(k){ed.tool=k;for(const b of $('edTools').children)b.classList.toggle('on',b.dataset.t===k);toast={t:ED_TIPS[k],life:200,ed:1}}
+function edCam(){const top=ed.top+6,VW=1300;sc=Math.max(1e-3,Math.min(cw/VW,(ch-top-6)/640));camX=ed.cam;ox=-camX*sc;oy=top+(ch-top-640*sc)/2+20*sc}
+function edPt(e){const p=toWorld(e);return{x:snap10(p.x),y:snap10(p.y)}}
+function edBlockAt(x,y,tol){let best=null,bd=1e9; // площадка, у верха которой (или внутри) точка
+  for(const q of ed.E.p){if(x<q[0]-5||x>q[1]+5)continue;const h=q[3]&&q[3].h,d=Math.abs(y-q[2]),inside=y>=q[2]&&(!h||y<=q[2]+h);if((d<=tol||inside)&&d<bd){best=q;bd=d}}return best}
+function edDown(e){if(e.button!==0||!e.isPrimary)return;pid=e.pointerId;try{cv.setPointerCapture(pid)}catch(_){}const p=edPt(e);ed.drag={x0:p.x,y0:p.y,x:p.x,y:p.y,sx:e.clientX,cam:ed.cam}}
+function edMove(e){const d=ed.drag;if(!d||e.pointerId!==pid)return;const p=edPt(e);d.x=p.x;d.y=p.y;if(ed.tool==='pan')ed.cam=clampV(d.cam-(e.clientX-d.sx)/sc,-800,3200)}
+function edUp(e){
+  const d=ed.drag;if(!d||e.pointerId!==pid)return;ed.drag=null;pid=null;const T=ed.tool,E=ed.E,x0=Math.min(d.x0,d.x),x1=Math.max(d.x0,d.x);
+  const save=()=>ed.hist.push(JSON.stringify(E)),bad=t=>{toast={t,life:150,bad:true,ed:1};sfx('no')};
+  if(T==='pan')return;
+  if(T==='ground'||T==='isl'){if(x1-x0<40)return bad('Проведи пальцем вбок — так задаётся ширина');save();const y=clampV(d.y0,T==='isl'?100:150,590);E.p.push(T==='isl'?[x0,x1,y,{h:60}]:[x0,x1,y])}
+  else if(T==='rock'){if(x1-x0<30)return bad('Проведи пальцем вбок — так задаётся ширина скалы');save();(E.o=E.o||[]).push([x0,x1,clampV(d.y0,40,540)])}
+  else if(T==='spk'){const q=edBlockAt(d.x0,d.y0,40);if(!q)return bad('Проведи по верху площадки');const a=Math.max(q[0],x0),b=Math.min(q[1],x1);if(b-a<20)return bad('Проведи вбок пошире');
+    save();const f=q[3]=q[3]||{};delete f.pit;delete f.spk;if(a<=q[0]+5&&b>=q[1]-5&&!f.h)f.pit=1;else f.spk=[a,b]}
+  else if(T==='coin'){save();E.coin=[d.x,d.y]}
+  else if(T==='start'){if(!edBlockAt(d.x,d.y,70))return bad('Нажми на площадку');save();E.start=d.x}
+  else if(T==='erase'){
+    if(E.coin&&Math.hypot(E.coin[0]-d.x,E.coin[1]-d.y)<30){save();delete E.coin}
+    else{const r=(E.o||[]).findIndex(q=>d.x>=q[0]-5&&d.x<=q[1]+5&&d.y<=q[2]+10);
+      if(r>=0){save();E.o.splice(r,1)}
+      else{const q=edBlockAt(d.x,d.y,25);if(!q)return;const f=q[3];save();
+        if(f&&(f.pit||f.spk)&&Math.abs(d.y-q[2])<=25){delete f.pit;delete f.spk;if(!Object.keys(f).length)q.length=3}else E.p.splice(E.p.indexOf(q),1)}}}
+  sfx('place');edShow()}
+function edDone(play){ // сохранить; play — сразу сыграть
+  const C=prog.custom[ed.idx],code=encLevel(ed.E);if(C.c!==code){C.c=code;C.b=0}saveProg();
+  const i=ed.idx;if(play){const err=edCheck(edLevel(ed.E));if(err){toast={t:err,life:200,bad:true,ed:1};sfx('no');return}}
+  edClose();if(play)playCustom(i,true);else openMine()}
+function edClose(){ed=null;document.body.classList.remove('editing');$('edBar').hidden=true;pid=null;
+  if(prog.mode==='br'){lvlIdx=prog.cur;loadBridge(prog.bridge.cur)}else load(prog.cur)} // поле за меню — обычный уровень, как при запуске
+function playCustom(i,edit){const C=prog.custom[i],E=C&&decLevel(C.c);if(!E)return;const Lv=edLevel(E),err=edCheck(Lv);if(err){toast={t:err,life:200,bad:true};sfx('no');return}
+  hideScreens();loadSpecial({kind:'custom',idx:i,edit:!!edit,L:Lv,title:'✎ '+C.n,seed:hashStr(C.c)%997,coinKey:null})}
+function openMine(){
+  const box=$('myList');box.textContent='';
+  if(!prog.custom.length){const p=document.createElement('p');p.className='hint';p.textContent='Пока пусто. Нажми «+ Новый» и нарисуй свой уровень — или введи код от друга.';box.appendChild(p)}
+  prog.custom.forEach((C,i)=>{
+    const row=document.createElement('div');row.className='myrow';const tx=document.createElement('div');tx.className='mytxt';const nm=document.createElement('b');nm.textContent=C.n;
+    const sm=document.createElement('small');sm.textContent=C.b?'лучший результат: '+C.b+' '+plural(C.b,'шарик','шарика','шариков'):'ещё не пройден';tx.append(nm,sm);
+    const mk=(t,title,f,cls)=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.title=title;b.setAttribute('aria-label',title+': '+C.n);if(cls)b.className=cls;b.onclick=f;return b};
+    let armed=0;const del=mk('✕','Удалить',()=>{if(Date.now()-armed>3000){armed=Date.now();del.textContent='Точно?';return}prog.custom.splice(i,1);saveProg();openMine()},'ghost');
+    row.append(tx,mk('▶','Играть',()=>playCustom(i)),mk('✎','Редактировать',()=>openEditor(i),'ghost'),mk('Код','Поделиться кодом',()=>openCode('out',i),'ghost'),del);box.appendChild(row)});
+  show1('myOv');$('myBack').focus({preventScroll:true})}
+function openCode(mode,i){
+  const tx=$('codeTx');show1('codeOv');
+  if(mode==='out'){$('codeT').textContent=prog.custom[i].n;tx.value=prog.custom[i].c;tx.readOnly=true;$('codeHint').textContent='Отправь код другу: у него «Редактор» → «Ввести код»';
+    $('codeOk').textContent='Скопировать';$('codeOk').onclick=()=>{tx.select();copyText(tx.value);$('codeHint').textContent='Скопировано — вставь в сообщение другу'}}
+  else{$('codeT').textContent='Ввести код';tx.value='';tx.readOnly=false;$('codeHint').textContent='Вставь код уровня, который прислал друг';$('codeOk').textContent='Загрузить';
+    $('codeOk').onclick=()=>{const E=decLevel(tx.value);if(!E){$('codeHint').textContent='Код не подошёл — проверь, что он скопирован целиком';sfx('no');return}
+      if(prog.custom.length>=50){$('codeHint').textContent='Уже 50 уровней — удали лишние';return}
+      prog.custom.push({n:'Уровень друга '+(prog.custom.filter(c=>/^Уровень друга/.test(c.n)).length+1),c:encLevel(E),b:0});saveProg();openMine()};setTimeout(()=>tx.focus(),50)}}
 // ---- главное меню, магазин скинов, настройки
-const SCREENS=['mm','lvOv','brOv','shop','set'];
+const SCREENS=['mm','lvOv','brOv','shop','set','myOv','codeOv'];
 const anyScreen=()=>SCREENS.some(id=>!$(id).hidden);
 function hideScreens(){for(const id of SCREENS)$(id).hidden=true}
 function show1(id){hideScreens();ghost=null;hover=null;hoverS=null;pid=null;$(id).hidden=false}
 function openMain(){
   $('mmCoins').textContent=prog.coins;
-  $('mmPlaySub').textContent=endless?'продолжить путь · флажков '+flags:bridge?'мост '+(bIdx+1)+' · '+BL.name:'уровень '+(lvlIdx+1)+' · '+levelName(lvlIdx);
-  $('endlessRec').textContent=prog.endless?'рекорд: '+prog.endless+' флажков':'площадки без конца, флажок = +'+E_BONUS+' шариков';
+  $('mmPlaySub').textContent=special?(special.kind==='daily'?'уровень дня':'свой уровень · '+special.title.replace(/^✎ /,'')):endless?'продолжить путь · флажков '+flags:bridge?'мост '+(bIdx+1)+' · '+BL.name:'уровень '+(lvlIdx+1)+' · '+levelName(lvlIdx);
+  $('dailySub').textContent=dailySub();
+  $('endlessRec').textContent=prog.endless?'рекорд: '+prog.endless+' '+plural(prog.endless,'флажок','флажка','флажков'):'флажок = +'+E_BONUS+' шариков';
   show1('mm');$('mmPlay').focus({preventScroll:true});
 }
 function previewSkin(cvs,k){
@@ -770,27 +984,137 @@ function openShop(){
   show1('shop');
 }
 let resetArm=0;
-function openSet(){const st=prog.set;$('stAnim').checked=st.anim;$('stLegend').checked=st.legend;$('stZone').checked=st.zone;resetArm=0;$('stReset').textContent='Сбросить прогресс';show1('set')}
+function openSet(){const st=prog.set;$('stSound').checked=st.sound!==false;$('stAnim').checked=st.anim;$('stLegend').checked=st.legend;$('stZone').checked=st.zone;resetArm=0;$('stReset').textContent='Сбросить прогресс';show1('set')}
 function applySet(){still=rm.matches||!prog.set.anim;document.querySelector('.legend').hidden=!prog.set.legend}
-for(const [id,key] of [['stAnim','anim'],['stLegend','legend'],['stZone','zone']])$(id).onchange=e=>{prog.set[key]=e.target.checked;saveProg();applySet()};
+for(const [id,key] of [['stSound','sound'],['stAnim','anim'],['stLegend','legend'],['stZone','zone']])$(id).onchange=e=>{prog.set[key]=e.target.checked;saveProg();applySet()};
 $('stReset').onclick=()=>{ // подтверждение вторым нажатием в течение 4 секунд
   const now=Date.now();if(now-resetArm>4000){resetArm=now;$('stReset').textContent='Точно? Нажми ещё раз';return}
   try{localStorage.removeItem(SK)}catch(_){}
-  prog={best:0,cur:0,stars:{},inf:false,skin:'classic',coins:0,owned:['classic'],set:{anim:true,legend:true,zone:true},endless:0,bridge:parseBr(),mode:'lv',seen:{},bonus:{}};saveProg();applySet();load(0);openMain()};
+  prog={best:0,cur:0,stars:{},inf:false,skin:'classic',coins:0,owned:['classic'],set:{sound:true,anim:true,legend:true,zone:true},endless:0,bridge:parseBr(),mode:'lv',seen:{},bonus:{},daily:parseDaily(),custom:[],hints:3};saveProg();applySet();load(0);openMain()};
 $('mmPlay').onclick=()=>{hideScreens()};
 $('mmLevels').onclick=()=>openMenu();
 $('mmBridges').onclick=()=>openBridges();
 $('mmEndless').onclick=()=>{hideScreens();loadEndless()};
+$('mmDaily').onclick=openDaily;
 $('mmSkins').onclick=()=>openShop();
 $('mmSet').onclick=()=>openSet();
-for(const id of ['lvClose','brClose','shopBack','setBack'])$(id).onclick=()=>openMain();
-addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('mm').hidden)hideScreens();else if(anyScreen())openMain();else if($('ov').hidden)openMain();else if(bridge&&preTest)retryTest()}}); // на карточке моста Esc = «Ещё раз»/«Улучшить»
+for(const id of ['lvClose','brClose','shopBack','setBack','myBack'])$(id).onclick=()=>openMain();
+$('mmEditor').onclick=()=>openMine();$('myNew').onclick=()=>openEditor(-1);$('myCode').onclick=()=>openCode('in');$('codeBack').onclick=()=>openMine();
+$('edUndo').onclick=()=>{if(ed&&ed.hist.length){ed.E=JSON.parse(ed.hist.pop());edShow();sfx('undo')}};$('edDone').onclick=()=>edDone(false);$('edPlay').onclick=()=>edDone(true);
+for(const[k,t]of ED_TOOLS){const b=document.createElement('button');b.type='button';b.textContent=t;b.dataset.t=k;b.onclick=()=>edTool(k);$('edTools').appendChild(b)}
+addEventListener('keydown',e=>{if(e.key==='Escape'&&(ed||!$('codeOv').hidden||!$('myOv').hidden)){window.__back();return}if(e.key==='Escape'){if(!$('mm').hidden)hideScreens();else if(anyScreen())openMain();else if($('ov').hidden)openMain();else if(bridge&&preTest)retryTest()}}); // на карточке моста Esc = «Ещё раз»/«Улучшить»
 
+// ---- подсказка: облегчённый бот-строитель (как tools/bot.js) перебирает, куда поставить шарик, прогоняя физику на копии;
+// считает кусочками по ~12 мс между кадрами, чтобы экран не подвисал. 3 подсказки бесплатно, дальше HINT_COST монет
+const HINT_COST=10;let thinking=null;
+function hintTarget(){if(endless){const P=cps[cp];return P?{x:P.x+P.w/2,y:P.y-R}:null}return goalR?{x:(goalR.spk?goalR.spk[1]:goalX)+45,y:goalR.y-R}:null}
+function geoField(T){ // расстояние до цели в обход земли: волна по сетке 10×10
+  const S=10,x0=Math.floor((Math.min(minX,T.x-1500)-300)/S),x1=Math.ceil((T.x+400)/S),y0=-40,y1=Math.ceil((H+80)/S),w=x1-x0+1,h=y1-y0+1;
+  const D=new Float32Array(w*h).fill(Infinity),solid=new Uint8Array(w*h);
+  for(const r of terrain){const a=Math.max(0,Math.ceil((r.x-R+2)/S)-x0),b=Math.min(w-1,Math.floor((r.x+r.w+R-2)/S)-x0),c=Math.max(0,Math.ceil((r.y-R+2)/S)-y0),d=Math.min(h-1,Math.floor((r.y+r.h+R-2)/S)-y0);
+    for(let j=c;j<=d;j++)for(let i=a;i<=b;i++)solid[j*w+i]=1}
+  const q=[],ti=Math.round(T.x/S)-x0,tj=Math.round(T.y/S)-y0;if(ti<0||tj<0||ti>=w||tj>=h)return()=>0;D[tj*w+ti]=0;q.push(tj*w+ti);
+  const N=[[1,0,1],[-1,0,1],[0,1,1],[0,-1,1],[1,1,1.414],[1,-1,1.414],[-1,1,1.414],[-1,-1,1.414]];
+  for(let h0=0;h0<q.length;h0++){const id=q[h0],i=id%w,j=id/w|0,d=D[id];
+    for(const[di,dj,c]of N){const a=i+di,b=j+dj;if(a<0||b<0||a>=w||b>=h)continue;const k=b*w+a;if(solid[k])continue;const nd=d+c*S;if(nd<D[k]-1e-3){D[k]=nd;q.push(k)}}}
+  return p=>{const i=Math.round(p.x/S)-x0,j=Math.round(p.y/S)-y0;if(i<0||j<0||i>=w||j>=h)return 1e6;let b=D[j*w+i];
+    if(b<Infinity)return b+Math.hypot(p.x-(i+x0)*S,p.y-(j+y0)*S);
+    for(let dj=-2;dj<=2;dj++)for(let di=-2;di<=2;di++){const a=i+di,c=j+dj;if(a>=0&&c>=0&&a<w&&c<h)b=Math.min(b,D[c*w+a]+Math.hypot(di,dj)*S)}return b<Infinity?b:1e6}}
+function hMetrics(geo){let g=1e9,sx=0,lo=1e9,hi=-1e9,st=0,v=0;
+  for(const n of nodes){g=Math.min(g,geo(n));sx+=n.x;if(n.g){lo=Math.min(lo,n.x);hi=Math.max(hi,n.x)}v=Math.max(v,Math.abs(n.x-n.px)+Math.abs(n.y-n.py))}
+  for(const b of bars)st=Math.max(st,(b.s||0)/BREAK);const com=sx/Math.max(1,nodes.length);
+  return{g,margin:hi<lo?-100:Math.min(com-lo,hi-com),st,v}} // margin — запас устойчивости: центр тяжести над опорой
+function hCands(geo,nFwd,nBack){ // точки рядом с передними шариками (вперёд) и у опоры (противовес)
+  const out=[],seen=new Set(),add=p=>{const k=Math.round(p.x/12)+':'+Math.round(p.y/12);if(seen.has(k))return;seen.add(k);const{c,ok}=candidates(p);if(ok&&(nodes.length<2||c.length>=2))out.push({x:p.x,y:p.y,gp:geo(p)})};
+  const order=nodes.map((n,i)=>[geo(n),i]).sort((a,b)=>a[0]-b[0]);
+  for(const[,i]of order.slice(0,6)){const n=nodes[i];for(let a=0;a<24;a++)for(const d of[60,95,125,146]){const t=a/24*Math.PI*2;add({x:n.x+Math.cos(t)*d,y:n.y+Math.sin(t)*d})}}
+  out.sort((a,b)=>a.gp-b.gp);const fwd=out.slice(0,nFwd),back=[],n0=out.length;
+  for(const n of nodes)if(n.g)for(const dx of[-40,-80,-120])for(const dy of[0,-30,-60])add({x:n.x+dx,y:n.y+dy});
+  for(let k=n0;k<out.length&&back.length<nBack;k+=Math.max(1,(out.length-n0)/nBack|0))back.push(out[k]);
+  return fwd.concat(back)}
+function hState(){return{n:nodes.map(o=>({...o})),b:bars.map(o=>({...o})),used,broken,winT,lost,toast,pops,debris,coin}}
+function hLoad(S){nodes=S.n.map(o=>({...o}));bars=S.b.map(o=>({...o}));used=S.used;broken=S.broken;winT=S.winT;lost=S.lost;toast=S.toast;pops=S.pops;debris=S.debris;coin=S.coin}
+function hPlace(p){const{c,ok}=candidates(p);if(!ok)return false;const i=addNode(p.x,p.y);used++;c.forEach(o=>addBar(o.i,i));return true}
+function hTry(base,p,k,geo,m0g){ // поставить шарик в p и прогнать k шагов: {win} | {prog,m} | null (упало, лопнуло)
+  sim=true;hLoad(base);const nb=nodes.length;let r=null;
+  if(hPlace(p)){const br=broken;winT=0;for(let q=0;q<k&&!lost;q++){step();if(winT>0)break}
+    if(winT>0)r={win:true};else if(!lost&&broken===br&&nodes.length===nb+1){const m=hMetrics(geo);r={prog:m0g-m.g,m}}}
+  hLoad(base);sim=false;return r}
+function* hintGen(){
+  const T=hintTarget();if(!T)return null;const geo=geoField(T),base=hState(),m0g=hMetrics(geo).g,res=[];
+  for(const p of hCands(geo,30,12)){const r=hTry(base,p,75,geo,m0g);if(r&&r.win)return p;if(r)res.push({p,...r});yield}
+  const fwd=res.filter(r=>r.prog>6&&r.m.margin>10),sc=r=>r.prog+.15*Math.max(-60,Math.min(80,r.m.margin))-25*Math.max(0,r.m.st-.6)-3*r.m.v;
+  if(fwd.length)return fwd.sort((a,b)=>sc(b)-sc(a))[0].p;
+  if(!res.length)return null;
+  // вперёд нельзя: из самых устойчивых вариантов берём тот, после которого лучше всего идёт следующий шаг (противовес, укрепление)
+  const pre=res.map(r=>({r,s:Math.min(60,r.m.margin)+20*(1-Math.min(1,r.m.st))-3*r.m.v})).sort((a,b)=>b.s-a.s).slice(0,5);
+  for(const o of pre){sim=true;hLoad(base);hPlace(o.r.p);const br=broken;for(let q=0;q<120&&!lost;q++)step();
+    if(lost||broken>br){hLoad(base);sim=false;o.look=-1;yield;continue}
+    const s1=hState(),g1=hMetrics(geo).g,c2=hCands(geo,12,0);hLoad(base);sim=false;o.look=0;yield;
+    for(const p2 of c2){const r=hTry(s1,p2,75,geo,g1);if(r&&(r.win||(r.prog>6&&r.m.margin>10)))o.look=Math.max(o.look,r.win?1e9:r.prog);yield}
+    hLoad(base)}
+  pre.sort((a,b)=>b.look-a.look||b.s-a.s);return pre[0].look>=0?pre[0].r.p:null}
+function startHint(){
+  if(thinking||won||lost||testing||bridge||anyScreen())return;
+  if(hintP){hintP=null;return} // повторное нажатие прячет подсказку
+  if(prog.hints<=0&&prog.coins<HINT_COST){toast={t:'Подсказка стоит '+HINT_COST+' монет — их дают за уровни',life:150,bad:true};sfx('no');return}
+  ghost=null;hover=null;thinking={g:hintGen(),t0:performance.now()};requestAnimationFrame(pumpHint)}
+function pumpHint(){
+  const th=thinking;if(!th)return;const end=performance.now()+12,m0=mat;let r={done:false};mat='w';
+  try{do r=th.g.next();while(!r.done&&performance.now()<end)}catch(e){console.error('hint',e);r={done:true,value:null}}finally{mat=m0;sim=false}
+  if(thinking!==th)return; // отменили (отмена хода, меню, новый уровень)
+  if(!r.done){requestAnimationFrame(pumpHint);return}
+  thinking=null;updCnt();const p=r.value;
+  if(!p){toast={t:'Хорошего хода не нашлось — попробуй отменить последний',life:150,bad:true};sfx('no');return}
+  if(prog.hints>0)prog.hints--;else prog.coins-=HINT_COST;saveProg();
+  hintP={x:p.x,y:p.y};sfx('hint');toast={t:'Поставь шарик в отмеченное место'+(prog.hints>0?' · бесплатных подсказок: '+prog.hints:' · −'+HINT_COST+' монет'),life:150}}
+// ---- звук: короткие синтезированные звуки (Web Audio), без файлов. sim — идёт расчёт подсказки: тишина
+let actx=null,master=null,noiseBuf=null,sim=false;const sfxT={};
+function ac(){
+  if(sim||prog.set.sound===false)return null;
+  if(!actx){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;
+    try{actx=new C();master=actx.createGain();master.gain.value=.5;master.connect(actx.destination)}catch(_){actx=null;return null}}
+  if(actx.state==='suspended')actx.resume().catch(()=>{});return actx}
+function tone(f,dur,{type='sine',vol=.3,f2=0,delay=0}={}){const a=ac();if(!a)return;const t=a.currentTime+delay,o=a.createOscillator(),g=a.createGain();
+  o.type=type;o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+dur);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.005);g.gain.exponentialRampToValueAtTime(.001,t+dur);o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+.03)}
+function noise(dur,{vol=.3,freq=1000,q=1,type='bandpass',delay=0}={}){const a=ac();if(!a)return;
+  if(!noiseBuf){noiseBuf=a.createBuffer(1,a.sampleRate*.5|0,a.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}
+  const t=a.currentTime+delay,src=a.createBufferSource(),f=a.createBiquadFilter(),g=a.createGain();src.buffer=noiseBuf;f.type=type;f.frequency.value=freq;f.Q.value=q;
+  g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);src.connect(f);f.connect(g);g.connect(master);src.start(t);src.stop(t+dur+.03)}
+const SFX={
+  place:()=>tone(430+Math.random()*80,.09,{type:'triangle',vol:.35,f2:260}),
+  steel:()=>{tone(1250,.22,{vol:.14,f2:1150});tone(620,.12,{type:'triangle',vol:.3,f2:330})},
+  undo:()=>tone(300,.08,{type:'triangle',vol:.22,f2:440}),
+  crack:()=>{noise(.2,{vol:.55,freq:1700,q:.7});tone(150,.16,{type:'triangle',vol:.3,f2:60})},
+  pop:()=>{noise(.12,{vol:.4,freq:3500,q:.5,type:'highpass'});tone(800,.07,{vol:.2,f2:220})},
+  coin:()=>{tone(988,.08,{type:'square',vol:.1});tone(1319,.28,{type:'square',vol:.1,delay:.08})},
+  flag:()=>[523,659,784].forEach((f,k)=>tone(f,.2,{type:'triangle',vol:.24,delay:k*.09})),
+  win:()=>[523,659,784,1047].forEach((f,k)=>tone(f,k===3?.55:.2,{type:'triangle',vol:.26,delay:k*.12})),
+  fall:()=>tone(520,.65,{type:'sawtooth',vol:.07,f2:80}),
+  cart:()=>{noise(.5,{vol:.18,freq:180,q:.8,type:'lowpass'});tone(110,.4,{type:'square',vol:.04,f2:150})},
+  hint:()=>[784,988,1175].forEach((f,k)=>tone(f,.16,{vol:.16,delay:k*.08})),
+  no:()=>tone(180,.14,{type:'square',vol:.06}),
+  click:()=>tone(700,.035,{vol:.1}),
+};
+function sfx(k){if(sim)return;const now=performance.now();if(now-(sfxT[k]||0)<70)return;sfxT[k]=now;try{SFX[k]()}catch(_){}} // одинаковые звуки не чаще ~14 раз в секунду
+document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('button'))sfx('click')},true);
+document.addEventListener('visibilitychange',()=>{if(actx){if(document.hidden)actx.suspend().catch(()=>{});else actx.resume().catch(()=>{})}});
 // ---- рисование
 const clouds=[[120,90,1],[430,150,.8],[760,70,1.2],[930,190,.7]],CLOUD_P=1400;
 const rm=matchMedia('(prefers-reduced-motion: reduce)');let still=rm.matches;
 rm.addEventListener?.('change',()=>applySet());
 const noHover=matchMedia('(hover: none)');
+// сталь: тёмная балка с бликом (краснеет под нагрузкой) и шарики-гайки — одинаково при любом скине
+function drawSteelBars(bs){
+  for(const B of bucket)B.length=0;
+  for(const b of bs){const a=nodes[b.a],d=nodes[b.b];if(a&&d)bucket[qk(b.s)].push(a,d)}
+  ctx.lineCap='round';
+  for(let q=0;q<=GQ;q++){const B=bucket[q];if(!B.length)continue;ctx.beginPath();for(let i=0;i<B.length;i+=2){ctx.moveTo(B[i].x,B[i].y);ctx.lineTo(B[i+1].x,B[i+1].y)}
+    ctx.strokeStyle=hot(q/GQ,[52,62,76],[216,69,59]);ctx.lineWidth=Math.max(11,3.5/sc);ctx.stroke();ctx.strokeStyle='rgba(220,230,240,.55)';ctx.lineWidth=Math.max(2.5,1/sc);ctx.stroke()}}
+function drawSteelNodes(ns,nr){ctx.fillStyle='#2f3742';ctx.beginPath();
+  for(const n of ns)for(let q=0;q<6;q++){const t=q/6*Math.PI*2+Math.PI/6,x=n.x+Math.cos(t)*(nr+1),y=n.y+Math.sin(t)*(nr+1);q?ctx.lineTo(x,y):ctx.moveTo(x,y)}
+  ctx.fill();ctx.fillStyle='#b9c3cf';ctx.beginPath();for(const n of ns){ctx.moveTo(n.x+nr*.45,n.y);ctx.arc(n.x,n.y,nr*.45,0,7)}ctx.fill()}
 // шипы: ряд треугольников на отрезке [x0,x1] верха площадки y
 function drawSpikes(x0,x1,y){const n=Math.max(1,Math.round((x1-x0)/12)),w=(x1-x0)/n;ctx.beginPath();
   for(let k=0;k<n;k++){const a=x0+k*w;ctx.moveTo(a,y+1);ctx.lineTo(a+w/2,y-SPK);ctx.lineTo(a+w,y+1)}
@@ -1039,19 +1363,31 @@ function draw(time){
     if(!c.length&&prog.set.zone){ // только внешний контур зоны досягаемости: куски окружностей, не закрытые соседними
       ctx.setLineDash([4,8]);ctx.strokeStyle=TH.line;ctx.lineWidth=2;ctx.stroke(zonePath());
       ctx.setLineDash([])}
-    ctx.setLineDash([8,8]);ctx.lineWidth=6;ctx.strokeStyle=ok?inkA(.45):'rgba(216,69,59,.7)';
+    ctx.setLineDash([8,8]);ctx.lineWidth=6;ctx.strokeStyle=ok?(mat==='s'?'rgba(70,84,102,.8)':inkA(.45)):'rgba(216,69,59,.7)';
     for(const o of c){const n=nodes[o.i];ctx.beginPath();ctx.moveTo(n.x,n.y);ctx.lineTo(gp.x,gp.y);ctx.stroke()}
     ctx.setLineDash([]);ctx.fillStyle=ok?inkA(.4):'rgba(216,69,59,.6)';ctx.beginPath();ctx.arc(gp.x,gp.y,bridge?Math.max(nr-2,9/sc):nr-2,0,7);ctx.fill();
     if(bridge){ctx.lineWidth=2/sc;ctx.strokeStyle='rgba(255,255,255,.85)';ctx.stroke()}} // мелкий масштаб мостов: призрак не меньше ~9 px и со светлым контуром
   // палки и шарики
-  drawBarsSkin(ctx,prog.skin,nodes,bars);ctx.lineCap='round';ctx.lineWidth=Math.max(9,3/sc);
+  const stB=bars.some(b=>b.st);drawBarsSkin(ctx,prog.skin,nodes,stB?bars.filter(b=>!b.st):bars);if(stB)drawSteelBars(bars.filter(b=>b.st));
+  ctx.lineCap='round';ctx.lineWidth=Math.max(9,3/sc);
   for(const d of debris){ctx.globalAlpha=Math.min(1,d.life/30)*(d.fade?.5:1);ctx.strokeStyle=d.fade?inkA(1):'#d8453b';ctx.beginPath();ctx.moveTo(d.x1,d.y1);ctx.lineTo(d.x2,d.y2);ctx.stroke()}ctx.globalAlpha=1;
-  drawNodesSkin(ctx,nr,prog.skin,bridge?nodes.slice(nPin):nodes); // болты рисует drawBridge — без лиц скина
+  const nn=bridge?nodes.slice(nPin):nodes,stN=nn.some(n=>n.st); // болты рисует drawBridge — без лиц скина; стальные шарики — гайки при любом скине
+  drawNodesSkin(ctx,nr,prog.skin,stN?nn.filter(n=>!n.st):nn);if(stN)drawSteelNodes(nn.filter(n=>n.st),nr);
   if(bridge)drawBridge(nr);
   for(const q of pops){const k=1-q.life/(q.gold?30:24);ctx.globalAlpha=1-k;ctx.strokeStyle=q.gold?'#f2b43a':inkA(1);ctx.lineWidth=3;ctx.beginPath();
     if(q.gold)for(let a=0;a<8;a++){const t=a*Math.PI/4;ctx.moveTo(q.x+Math.cos(t)*(10+k*14),q.y+Math.sin(t)*(10+k*14));ctx.lineTo(q.x+Math.cos(t)*(16+k*22),q.y+Math.sin(t)*(16+k*22))}
     else{ctx.moveTo(q.x+R+k*16,q.y);ctx.arc(q.x,q.y,R+k*16,0,7)}ctx.stroke()}ctx.globalAlpha=1;
-  const hk=endless?levelHint(vx0,vx1+200):hintK&&ballsUsed()<7?hintK:null;
+  if(hintP&&!won&&!lost){const k=still?.5:(Math.sin(time*.008)+1)/2,{c}=candidates(hintP); // подсказка: пульсирующее кольцо и будущие палки
+    ctx.setLineDash([6,8]);ctx.lineWidth=4;ctx.strokeStyle='rgba(242,180,58,.9)';ctx.beginPath();for(const o of c){const n=nodes[o.i];ctx.moveTo(n.x,n.y);ctx.lineTo(hintP.x,hintP.y)}ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='rgba(242,180,58,.35)';ctx.beginPath();ctx.arc(hintP.x,hintP.y,nr,0,7);ctx.fill();
+    ctx.strokeStyle='#f2b43a';ctx.lineWidth=3+2*k;ctx.beginPath();ctx.arc(hintP.x,hintP.y,nr+6+6*k,0,7);ctx.stroke();
+    ctx.fillStyle=inkA(1);ctx.font='600 26px Caveat, cursive';ctx.textAlign='center';ctx.fillText('сюда',hintP.x,hintP.y-nr-18);ctx.textAlign='start'}
+  if(ed){ctx.strokeStyle='rgba(255,255,255,.22)';ctx.lineWidth=1/sc;ctx.beginPath();for(let x=Math.floor(vx0/100)*100;x<vx1;x+=100){ctx.moveTo(x,vy0);ctx.lineTo(x,vy1)}for(let y=0;y<=600;y+=100){ctx.moveTo(vx0,y);ctx.lineTo(vx1,y)}ctx.stroke();
+    const d=ed.drag,T=ed.tool;if(d&&T!=='pan'){const x0=Math.min(d.x0,d.x),x1=Math.max(d.x0,d.x),w=Math.max(4,x1-x0);ctx.fillStyle='rgba(242,180,58,.4)';
+      if(T==='ground')ctx.fillRect(x0,d.y0,w,Math.max(20,vy1-d.y0));else if(T==='isl')ctx.fillRect(x0,d.y0,w,60);else if(T==='rock')ctx.fillRect(x0,vy0,w,d.y0-vy0);else if(T==='spk')ctx.fillRect(x0,d.y0-SPK,w,SPK);
+      else{ctx.beginPath();ctx.arc(d.x,d.y,16,0,7);ctx.fill()}}
+    if(nodes[0]){ctx.fillStyle=inkA(1);ctx.font='600 26px Caveat, cursive';ctx.textAlign='center';ctx.fillText('старт',nodes[0].x,nodes[0].y-24);ctx.textAlign='start'}}
+  const hk=ed?null:endless?levelHint(vx0,vx1+200):hintK&&ballsUsed()<7?hintK:null;
   if(hk&&!won&&!lost){const hintK=hk,h=HINTS[hintK.k];ctx.fillStyle=inkA(1);ctx.font='600 30px Caveat, cursive';ctx.textAlign='center';
     const x=Math.max(vx0+150,Math.min(vx1-150,hintK.x));ctx.fillText(h[0],x,hintK.y);ctx.fillText(h[1],x,hintK.y+34);ctx.textAlign='start'}
   // подсказки
@@ -1061,8 +1397,10 @@ function draw(time){
     else{ctx.fillText(noHover.matches?'веди пальцем — видно, куда прицепится':'наведи мышку — видно, куда прицепится',hx,300);ctx.fillText('доберись до флажка →',Math.max(360,vx0+12),380)}}
   ctx.restore();
   drawFront(time);
+  if(thinking){const a=time*.006,x=cw/2,y=Math.min(ch-60,ch*.75);ctx.fillStyle='rgba(255,255,255,.88)';ctx.beginPath();ctx.roundRect?ctx.roundRect(x-74,y-20,148,40,20):ctx.rect(x-74,y-20,148,40);ctx.fill(); // идёт расчёт подсказки
+    ctx.strokeStyle='#f2b43a';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x-46,y,9,a,a+4.2);ctx.stroke();ctx.fillStyle='#141414';ctx.font='500 15px Rubik, system-ui, sans-serif';ctx.fillText('думаю…',x-28,y+5)}
   if(toast&&toast.life>0){toast.life--;const a=Math.min(1,toast.life/30);ctx.globalAlpha=a;let fs=15;ctx.font='500 15px Rubik, system-ui, sans-serif';const w0=ctx.measureText(toast.t).width;if(w0+28>cw-24){fs=Math.max(10,15*(cw-52)/w0);ctx.font='500 '+fs.toFixed(1)+'px Rubik, system-ui, sans-serif'}
-    let ty=ch-96;if(ch<500){const K=cw+'x'+ch;if(toast.yK!==K){toast.yK=K;const top=cv.getBoundingClientRect().top;let y=document.querySelector('.hud').getBoundingClientRect().bottom;const lg=document.querySelector('.legend').getBoundingClientRect();if(lg.height&&lg.top<ch/2)y=Math.max(y,lg.bottom);toast.y=Math.round(y-top+8)}ty=Math.min(ch-44,toast.y)}
+    let ty=ch-96;if(ch<500){const K=cw+'x'+ch;if(toast.yK!==K){toast.yK=K;const top=cv.getBoundingClientRect().top;let y=(ed?$('edBar'):document.querySelector('.hud')).getBoundingClientRect().bottom;const lg=document.querySelector('.legend').getBoundingClientRect();if(lg.height&&lg.top<ch/2)y=Math.max(y,lg.bottom);toast.y=Math.round(y-top+8)}ty=Math.min(ch-44,toast.y)}
     const tw=ctx.measureText(toast.t).width+28,tx=(cw-tw)/2;ctx.fillStyle=toast.bad?'#d8453b':'#4caf6a';ctx.beginPath();ctx.roundRect?ctx.roundRect(tx,ty,tw,34,17):ctx.rect(tx,ty,tw,34);ctx.fill();
     ctx.fillStyle='#fff';ctx.fillText(toast.t,tx+14,ty+22);ctx.globalAlpha=1}
 }
