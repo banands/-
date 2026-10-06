@@ -181,7 +181,7 @@
     <label class="tg"><input type="checkbox" id="stLegend"><span>Подсказка про нагрузку</span></label>
     <label class="tg"><input type="checkbox" id="stZone"><span>Граница зоны досягаемости</span></label>
     <button id="stReset" type="button" class="danger">Сбросить прогресс</button>
-    <button id="setBack" class="ghost" type="button">← Назад</button><p class="ver">версия 0.22</p></div></div>
+    <button id="setBack" class="ghost" type="button">← Назад</button><p class="ver">версия 0.23</p></div></div>
   <div class="overlay" id="ov" hidden><div class="card"><h2 id="ovT"></h2><p id="ovP"></p><div class="row"><button id="ovB" type="button"></button><button id="ovB2" class="ghost" type="button" hidden></button><button id="ovB3" class="ghost" type="button" hidden></button></div></div></div>
 </div>
 
@@ -889,7 +889,8 @@ function edLevel(E){ // описание -> уровень: площадки с�
 function edCheck(L){if(L.p.filter(q=>!(q[3]&&q[3].pit)).length<2)return'Нужно хотя бы две площадки: старт и финиш';
   const g=L.p[L.p.length-1];if(g[3]&&g[3].pit)return'Финиш — самая правая площадка, она не может быть ямой с шипами';
   const on=L.p.find(q=>!(q[3]&&q[3].pit)&&L.start>=q[0]&&L.start<=q[1]);if(!on)return'Поставь старт на площадку (инструмент «Старт»)';
-  if(on===g)return'Старт на финишной площадке — поставь его левее';return null}
+  if(on===g)return'Старт на финишной площадке — поставь его левее';
+  const k=on[3]&&on[3].spk;if(k&&L.start>k[0]-R&&L.start<k[1]+R)return'Старт на шипах — первый шарик сразу лопнет, поставь его рядом';return null}
 function edShow(){ // описание из редактора — на поле, без физики
   const Lv=edLevel(ed.E);L=Lv;terrain=Lv.p.map(mkRect);goalR=terrain.length>1?terrain[terrain.length-1]:null;goalX=goalR?goalR.x:1e9;goalTop=goalR?goalR.y:0;
   cps=terrain.slice(1,-1).filter(r=>r.k!=='pit');cp=0;cpT=0;cpJ=-1;passed=[];if(Lv.o)for(const q of Lv.o)terrain.push(mkRock(q));
@@ -1039,8 +1040,9 @@ function hCands(geo,nFwd,nBack){ // точки рядом с передними 
   for(const n of nodes)if(n.g)for(const dx of[-40,-80,-120])for(const dy of[0,-30,-60])add({x:n.x+dx,y:n.y+dy});
   for(let k=n0;k<out.length&&back.length<nBack;k+=Math.max(1,(out.length-n0)/nBack|0))back.push(out[k]);
   return fwd.concat(back)}
-function hState(){return{n:nodes.map(o=>({...o})),b:bars.map(o=>({...o})),used,broken,winT,lost,toast,pops,debris,coin}}
-function hLoad(S){nodes=S.n.map(o=>({...o}));bars=S.b.map(o=>({...o}));used=S.used;broken=S.broken;winT=S.winT;lost=S.lost;toast=S.toast;pops=S.pops;debris=S.debris;coin=S.coin}
+// вспышки и обломки — копии: расчёт подсказки не должен дописывать в них свои лопнувшие шарики и сломанные палки
+function hState(){return{n:nodes.map(o=>({...o})),b:bars.map(o=>({...o})),used,broken,winT,lost,toast,pops:pops.map(o=>({...o})),debris:debris.map(o=>({...o})),coin}}
+function hLoad(S){nodes=S.n.map(o=>({...o}));bars=S.b.map(o=>({...o}));used=S.used;broken=S.broken;winT=S.winT;lost=S.lost;toast=S.toast;pops=S.pops.map(o=>({...o}));debris=S.debris.map(o=>({...o}));coin=S.coin}
 function hPlace(p){const{c,ok}=candidates(p);if(!ok)return false;const i=addNode(p.x,p.y);used++;c.forEach(o=>addBar(o.i,i));return true}
 function hTry(base,p,k,geo,m0g){ // поставить шарик в p и прогнать k шагов: {win} | {prog,m} | null (упало, лопнуло)
   sim=true;hLoad(base);const nb=nodes.length;let r=null;
