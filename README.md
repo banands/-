@@ -14,6 +14,13 @@
 | `android/build_apk.py`, `android/Sign.java` | сборка и подпись APK |
 | `tools/` | бот-строитель и проверки (Playwright + Chromium) |
 
+## Веб-версия (iPhone и браузер)
+
+На iPhone APK не ставится, а HTML-файл из Telegram, WhatsApp или «Файлов» открывается в просмотре без скриптов — игра не запускается
+(вместо пустого экрана она теперь так и пишет). Играть на iPhone — по ссылке в Safari: репозиторий публикуется через GitHub Pages
+(Settings → Pages → Deploy from a branch → эта ветка, папка `/ (root)`), адрес — https://banands.github.io/-/ .
+В Safari: «Поделиться» → «На экран „Домой“» — игра откроется на весь экран со значком `icon.png`. Прогресс хранится в браузере (localStorage).
+
 ## Сборка APK
 
 ```sh
